@@ -10,6 +10,7 @@ NOTE: Some of the documentation being presented was created when 'OpenCluster' w
 * [Queue](Queue/Queue.md)
 * [Data](Data/Data.md)
 * [ComplexData](ComplexData/ComplexData.md)
+* [LoadBalancer](LoadBalancer/LoadBalancer.md)
 
 ## Misc
 

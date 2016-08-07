@@ -11,6 +11,7 @@ NOTE: Some of the documentation being presented was created when 'OpenCluster' w
 * [Data](Data/Data.md)
 * [ComplexData](ComplexData/ComplexData.md)
 * [LoadBalancer](LoadBalancer/LoadBalancer.md)
+* [Logging](Logging/Logging.md)
 
 ## Misc
 

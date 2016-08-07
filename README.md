@@ -9,7 +9,7 @@ NOTE: Some of the documentation being presented was created when 'OpenCluster' w
 * [Locks](Locks/Locks.md)
 * [Queue](Queue/Queue.md)
 * [Data](Data/Data.md)
-* [ComplexData](ComplexData.md)
+* [ComplexData](ComplexData/ComplexData.md)
 
 ## Misc
 

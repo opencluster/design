@@ -3,6 +3,8 @@
 Some of the OpenCluster services use very similar method to ensure communication between nodes within the cluster.
 The MessageQueue services are similar but provide different metrics.
 
+The 'Base' is essentially a library and an optional code framework, that is targetted towards the Server components.  The counter-part for clients is [OpenCluster-Common](../Common/Common.md).
+
 The [OpenCluster-Cache](../Cache/Cache.md), [OpenCluster-Data](../Data/Data.md) and [OpenCluster-Locks](../Locks/Locks.md) services will all use very similar methods in communicating.  What they do with the data communicated is all very different, but the communication method is similar.
 
 ## Basic Requirements:

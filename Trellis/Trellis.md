@@ -7,69 +7,22 @@ It is essentially a framework for managed docker/hybrid environments. It enables
 The main idea, is that you can simply add a new site to the system (and tell it what docker containers are required to run it), and Trellis should do all the rest of the work, possibly including generating LetsEncrypt certificates, haproxy config (linked in with any other existing load balancing config).
 Services can come with a hints file which indicates key parts of the service (ie, default paths and containers), etc.
 
+## Running OpenCluster
+* [Getting Started](GettingStarted.md)
+* [Configuring](Configuring.md)
 
-## Getting Started
+## Design Goals
+* [Security](Security.md)
+* [Licensing](Licensing.md)
 
-The general idea is that you start off with a system somewhere that has docker installed. This initial system does not need to be in the final environment, for example it could start out as a small digital-ocean droplet, or a small amazon node.
-
-You pull down a docker image, and run it.  It will walk you through the process of setting up a command center.  Once the command-center is up and running, you instead only need to use that.
-
-
-## Optional Functionality
-
-Most of the functionality of Trellis can be enabled or disabled.  For example, if you are not using the REST API's then you should turn them off.
-
-
-## Security
-
-The entirety of the OpenCluster suite needs to take security very seriously, and ensure that the entire environment follows best practices for a secure envioronment.
+## Components and Features
+* [Monitoring](Monitoring.md)
+* [Metrics](Metrics.md)
+* [Secure files](SecureFiles.md)
+* [Non-Secure files](Files.md)
+* [Load Balancing](LoadBalancing.md)
 
 
-## Licensing
-
-As with all of OpenCluster it is opensource, and supported by the community.  However, OpenCluster provides the ability to pay for additional support and training.  The opencluster products do not need to be licenced.
-
-
-## Monitoring.
-
-The OpenCluster system can provide a monitoring interface to support personal.   If you dont want to use the built-in monitoring but instead feed events into your existing monitoring infrastructure, then the events themselves can be fed directly to most monitoring systems, or scripts can be triggered for ultimate flexibility on handling events.  In most cases, a combination of these solutions can be put in place.
-
-Trellis is an orchestration system that sets up environments and gets it running.    Once it is running, we need to know that everything is working as expected. 
-Therefore, we need to be able to report the status and health of the various components within the system.
-Some of the Trellis functionality would be accomplished by adding trellis services to your environment.  
-Each service added to the system should have additional config that describes how to monitor the services.  Some default options can be added.
-
-### Metrics
-In addition to monitoring, it is often useful to gather metrics.  Each service can also describe how to get metrics data.  Sometimes the service can push that data, and sometimes the data needs to be pulled.   Should be very flexible.   Actually hitting a REST-API would be really beneficial.  The metrics gathered could then be graphed or delivered to some other metrics analysing tool.   Some metrics might be 
-* Current connections.
-* Requests processed per second.
-* Bytes received, transferred.
-* CPU load.
-* Memory used.
-* Disk Space used.
-
-The metrics could also be used as a trigger to grow or shrink the environment automatically.
-
-
-## Deployment of files
-
-When having a container running on a host, there may be a requirement that a particular file be on the host, and passed to the container.
-The file (or folder) on the container should be listed as a resource, and the config should reference the resource, not the actual path, etc.
-Dependencies of containers and resources would mean that if one or the other is changed, then the other can respond.
-Dependencies can be automatically determined if resources are used in config rather than specific paths, etc.
-An example of a file might be a security certificate to access a resource.
-
-For folders, could move the folder to specific hosts that are needed.  read-only could be rsync'd between hosts.
-
-Another example of a folder might be a data folder.  If we want to migrate a service to another host, we could handle it that way.  Even better would be to migrate the block device to the other node.
-
-
-
----
-When setting up a host that will be providing HTTPS loadbalancing, need to also ensure that it is secure against the latest attacks.
-Might also indicate whether this server is public facing or not.
-It can generate a unique set of DH parameters for the site, and include that in the config,  especially for haproxy which uses the param file attached to the end of the certificate PEM file.
----
 
 
 ### An example.

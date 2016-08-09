@@ -15,6 +15,14 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Security](Security.md)
 * [Licensing](Licensing.md)
 
+## Logical Concepts.
+* [Hosts](Hosts.md)
+* [Roles](Roles.md)
+* [Containers](Containers.md)
+* [Services](Services.md)
+* [Storage](Storage.md)
+* [Firewall](Firewall.md)
+
 ## Components and Features
 * [Monitoring](Monitoring.md)
 * [Metrics](Metrics.md)
@@ -24,30 +32,6 @@ Services can come with a hints file which indicates key parts of the service (ie
 
 
 
-
-### An example.
-A role has some specific modes.   Some roles dictate that certain files are deployed to the host, and some containers started up, and some iptables set, etc.  All servers started up with this type of role, should provide identicle services.
-Roles can be combined as long as they dont conflict.
-An example. 
-you might have a "webserver" role.
-You add a haproxy service to that role, and indicate that every host (that has that role) should have one (and only one) instance running.
-You add several website containers to that role, and again, indicate that every host should have one (or more).  The haproxy config may be static, so should include config to send traffic to all those containers if they exist.
-You might add some files that are put on the host (some files are static, but some can be generated from code).
-
-You might have a "web load balancer" role, which handles the load balancing outside of the host (role) to deliver traffic.  
-You might externally have DNS pointing traffic to two different IP's.
-You might have two hosts in this role, and they have config that points them to the respective hosts that they will direct traffic to.  You might have two datacenters or geo-regions (each host can have some meta-data that is used for this).
-To make it simple, you might actually have different haproxy configs, and it depends on the meta-data which config is used.
-
-You might have another role called "database".
-You might add some specific storage for this database with particular replication methods or whatever.  This might mean that only one host is active at a time on storage.
-You add a database container like mysql or something that uses that specific storage.  You link it so that whatever host has the active storage, is also the host that must run the database container.  You specify that there should only be one instance per role (not host).  If you have 4 hosts that have this role, then they are co-ordinated amonst themselves.  Eg, the database storage is replicated to each.
-
-You might also have a "database load balancer" role.
-This will be similar to the 'web load balancer' role, but remember that the database may be active/passive, so all traffic should go to the primary.  This means that all servers in that role may have the same config, and only have active connections to the active host.
-
-You might also have another "generic compute" role.
-This one has generic services added to it... some might be that there should only be one, and it will be deployed to whichever host has the least load (or whatever the policy is).
 
 
 All the services that have dependencies of other services (even in other roles) can receive the information about that service (as it existed at the time that the system was last balanced).
@@ -66,7 +50,7 @@ If you add a new service to a generic compute role, and all the hosts with that 
 
 
 ### Updating Components
-When you have your environment up and running, but want to update some config, files or services within the environment, you would make changes.  For example, if you have a service called 'Main Website' and you update it from webimage:7.1 to webimage:7.2, then you make that change and commit it to a particular environment.  If there are some specific instructions within the Service for updating, then it will follow them, otherwise it will simply do the default and stop one at a time all the containers for that service and start them again using the new container image.  
+When you have your environment up and running, but want to update some config, files or services within the environment, you would make changes.  For example, if you have a service called 'Main Website' and you update it from webimage:7.1 to webimage:7.2, then you make that change and commit it to a particular environment.  If there are some specific instructions within the Service for updating, then it will follow them, otherwise it will simply do the default and stop one at a time all the containers for that service and start them again using the new container image.
 Those changes were committed to a particular environment.  When you want to take those changes and apply them to another environment, you do a merge and it will merge the changes.
 
 
@@ -77,29 +61,12 @@ Most large organisations like to make changes and test them in a different envir
 Some additional information about the services in the role would be required to indicate how to safely migrate the change into a running system.   
 
 ### Seperate Environments
-Some organisations might prefer for the non-prod environments to be manages by a seperate console than the production environment.  In this case, we could setup some certificates in the prod environment so that it can access and pull change-sets from the non-prod environment.   The prod environment, could also be used to manage the non-prod environment, but not the other way around.  If we have isolated environments, then the master can also be sync'd up to the 'master' on the non-prod.  That would be the branch that new features and releases are branched from.
+Some organisations might prefer for the non-prod environments to be managed by a seperate console than the production environment.  In this case, we could setup some certificates in the prod environment so that it can access and pull change-sets from the non-prod environment.   The prod environment, could also be used to manage the non-prod environment, but not the other way around.  If we have isolated environments, then the master can also be sync'd up to the 'master' on the non-prod.  That would be the branch that new features and releases are branched from.
 
 ### Environment Chains
-Can setup the system so that whatever changes go in Prod, should have already been applied to UAT, etc... and down the chain.  It could potentially be over-ruled, because there may be some prod only changes that need to be applied, but it should at least warn the user a couple of times before applying it.   
+Can setup the system so that whatever changes go in Prod, should have already been applied to UAT, etc... and down the chain.  It could potentially be over-ruled, because there may be some prod-only changes that need to be applied, but it should at least warn the user a couple of times before applying it.
 
-### Hosts
-Hosts can be added to Roles.  The actual host themselves do not have to be exclusive or dedicated to Trellis, but obviously anything on there should not conflict with it.  In other words, it is perfectly acceptable to have trellis hosts that have additional things installed on them.  Quite possibly monitoring services, or management and maintenance tools, logging services, etc.
-
-### Roles
-Describes the role of a group of one or more hosts.  The hosts dont have to be defined for a role to exist.  Any hosts that are given the Role, will have the behaviours that are dictated by the role.
-
-### Containers (services)
-Normally Docker containers that are associated with a Role.
-Service details can be imported (the imported config may indicate a preferred role with a generic name, or a specific role with  a specified ID).  The implementor might overrule some of the security considerations, but by default, imported config that should be automatically associated with particular roles, should be signed by a certificate that has been approved to add those services to a particular role.
-Note that Role's should not specify environments.   You should not have a 'Staging' and 'Production' role.  Those are environments.   Roles should be logically considered to be within the scope of environments but identical.
-
-### Storage
-Different types of Storage can be attached to a role.  Some can be very stand-alone, and some can provide some HA and redundancy capabilities.  The storage options chosen will depend on the resources available.   It can range from a container that has an exported volume that automatically sync's the contents to another identical container, to backend redundant storage like SAN's with site sync, etc.
-
-### Firewall
-Each service in a role can indicate what connectivity it needs, and the firewall (iptables, etc) on the host will be automatically adjusted for the services that end up running on it.  This can be tricky to implement in a changing environment but should be doable.   An example of this... a service on host A requires to connect to a database service on host B.  The firewall on host A will be adjusted to allow the connection out from host A to host B, and the firewall on host B will be adjusted to allow the connection in from host A to host B.    The firewall will be set to represent the potential connectivity.    If a service is pinned to a particular host, then the rules could be present on just that host, but if a service could exist on any host in the role, then the rule should be set on all hosts in the role.  This follows the idea that the config for every host within a role should be fairly identical.  If we can have the firewall config adjusted on each host to allow for the actual changing environment (eg, a DB only existing on one host out of many)
-
-Logistics
+## Logistics
 ---------
 Trellis itself will need some services to function.    Trellis is required for making changes to the environment, and monitoring the health of the environment.  If all the trellis services are stopped, the main environments should continue to run.
 These services will all be in a Trellis Role that will need to be attached to one or more hosts. 

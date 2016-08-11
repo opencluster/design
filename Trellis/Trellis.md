@@ -22,6 +22,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Services](Services.md)
 * [Storage](Storage.md)
 * [Firewall](Firewall.md)
+* [Providers](Providers.md)
 
 ## Components and Features
 * [Monitoring](Monitoring.md)

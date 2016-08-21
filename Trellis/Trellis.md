@@ -25,12 +25,15 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Providers](Providers.md)
 
 ## Components and Features
+* [Controller](Controller.md)
 * [Monitoring](Monitoring.md)
 * [Metrics](Metrics.md)
 * [Secure files](SecureFiles.md)
 * [Non-Secure files](Files.md)
 * [Load Balancing](LoadBalancing.md)
 
+## Low Level Details
+* [Configuration](Configuration.md)
 
 
 

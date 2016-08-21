@@ -23,3 +23,10 @@ NOTE: Some of the documentation being presented was created when 'OpenCluster' w
 * [Docker](Docker.md)
 
 
+## Common design among products
+
+The OpenCluster products should all carry some similar design criteria.
+
+* [Security](Security.md)
+* [Authentication](Authentication.md)
+* [Zones](Zones.md)

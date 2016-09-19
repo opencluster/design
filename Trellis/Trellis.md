@@ -31,9 +31,13 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Secure files](SecureFiles.md)
 * [Non-Secure files](Files.md)
 * [Load Balancing](LoadBalancing.md)
+* [Environment Specifif Data](EnvironmentData.md)
 
 ## Low Level Details
 * [Configuration](Configuration.md)
+* [Applying Changes](ApplyingChanges.md)
+
+
 
 
 

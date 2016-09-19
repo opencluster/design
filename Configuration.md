@@ -6,59 +6,42 @@ There will be two kinds of config information in a running system.
 1. Source Config
 2. Running Information
 
-## Source Config
+# Design Decisions
 
-The source config is the main config that describes how an environment should be configured.  
-The source config should be have the following attributes:
-* Should be in text files 
-* Should be source controllable.
-* Should be the same for all environments (test/staging/prod)
-* Enviironmental information is not mentioned specifically in the config, such as Hosts.  The actual hosts in the system is not in config, but Running Info.
-* Passwords 
+* [Source Config or Direct API](Decisions/SourceOrDirect.md)
+
 
 ## Running Information
 
 The running information is the state of things in a running environment.  This state is shared amongst all the controllers in the environment.
-
-# Config Encoding / Format
-
-YAML is a popular format for configuration.  I'm not sure how good the parsing libraries are, and will experiment, and I'm not sure how good it is when comparing old config to new config, but it is probably the most likely option at this point.
-
-JSON is a good option from a programming point of view.  However, that is not as useful for actually editing the config.
-
-A Hybrid model might be to actually use JSON for feeding the config into the system, but people can create all their config in YAML and then convert it to a JSON format.  This is probably not the best option, would prefer to just stick to YAML if possible.
-
 
 
 # Trellis Controller Configuration
 
 The Trellis controller will need some configuration for itself.
 This will include:
-* where and how to access the cluster configuration.  
+* Where and how to access the cluster configuration.  
 * Authentication methods.
 * Links to controllers in other environments if they are seperate.
 * Logging
 
 # Cluster Configuration.
 
-We should start with a starting config, and everything is loaded after that.
+The Cluster configuration will be stored internally, but very similar to how [OpenCluster-Data(../Data/Data.md) service works.  Each configuration change will be wrapped RISP, and each controller will process it and ensure that they are all in sync.
 
-```
-Main Config
-   Roles
-   Containers
-   Services
-   Storage
-   Providers
-```
+
+# Configuration Changes
+
+Each actual change will be a part of a [ChangeSet](ChangeSet.md), and this will be made up of a bunch of commands.  When a changeset is committed and applied, it will first be sent to all the active controller nodes, and then when all controllers have the config, then it will be processed on all controllers at the same time, in a co-ordinated fashion.
 
 
 
+# Synchronising the Config across controllers.
 
-# Loading the Configuration
+Mechanisms and controls needs to be in place to sync the config between the controllers, and to recover when a controller fails or gets corrupted.  If changes are made to a controller while it is seperated from the cluster, need to be able to recover.
 
-The controller component that monitors the config can do it in a couple of ways.   It can do the GIT checkout itself, and take note when changes have arrived.  Or it can monitor files.
+# Off-site configuration.
 
-It will load the entire config into a new dataset and will only apply that dataset if there are no errros.
+OpenCluster will provide a service where users can have their config encrypted and stored offsite, so that if they have a total data-center outage, they can recover their environment.  There is no ability to also store the data in there, (although we could provide that as a paid option).  Essentially, if their system goes offline, they can spin up a whole new environment in, say, Amazon and have everything up and running again.
 
 

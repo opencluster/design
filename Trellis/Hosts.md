@@ -24,6 +24,16 @@ The things it will do:
 * Setup the cluster services.
 * Connect to the cluster.
 
+When you run the connect script, it will ask for admin credentials to the opencluster service (the connection details should be included in the script itself).
+Should be able to run a command like 
+```
+# may not work,... just a guess.
+curl -spP "https://opencluster.example.com/newhost" | sh -C
+```
+
+It would then ask for a username and password.  It will connect to the opencluster service, and add the host to the system.  It will provide whatever information it can gather.
+
+
 # Running
 
 When a host has been added to the cluster, recieved its [Role](Roles.md) information, and has everything running, it can continue to run, even reboot, and still perform it's services without the need of the central cluster.  All connectivity and access should remain, using DNS, or local host files. When the Host is setup, services are enabled that will ensure the components that should be running on the server, are running.  The cluster controller only needs to make changes when the environment itself changes.  For optimal environments, they should be setup in a way that doesn't require constant restructuring.  Hosts should ideally be pretty static.  Active/Passive hosts should be co-ordinated within the hosts and services themselves.

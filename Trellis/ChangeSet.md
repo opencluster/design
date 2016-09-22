@@ -73,6 +73,7 @@ Not authorised to deploy.  Pull request sent.  Change is pending deployment to "
 
 ```
 opencluster
+> change-set show-pending --env="Test"
 Pending changes to apply to "Test" environment.
  - Add Web Service
 > change-set commit --name="Add Web Service" --env="Test"
@@ -83,7 +84,5 @@ Not authorised to deploy.  Pull request sent.  Change is pending deployment to "
 >
 
 ```
-
-
 
 

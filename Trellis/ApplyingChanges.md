@@ -53,13 +53,13 @@ opencluster environment add-network --env="Testing" --network="Test Network"
 ## Command Groups
 
 * role
-** ls | list
-** create
-** delete
+	* ls | list
+	* create
+	* delete
 * host
-** ls | list
-** create
-** add-role
+	* ls | list
+	* create
+	* add-role
 * service
 * container
 ** ls | list

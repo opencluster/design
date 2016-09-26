@@ -52,6 +52,12 @@ opencluster environment add-network --env="Testing" --network="Test Network"
 
 ## Command Groups
 
+* change-set
+	* ls | list
+	* create
+	* discard
+	* commit
+	* promote
 * role
 	* ls | list
 	* create
@@ -61,21 +67,41 @@ opencluster environment add-network --env="Testing" --network="Test Network"
 	* create
 	* add-role
 * service
+	* ls | list
+	* create
+	* modify
+	* delete
 * container
-** ls | list
-** create
-** modify
-** delete
+	* ls | list
+	* create
+	* modify
+	* delete
 * webservice
+	* ls | list
+	* create
+	* modify
 * storage
+	* ls | list
+	* create
+	* modify
 * network
+	* ls | list
+	* create
+	* modify
 * provider
+	* ls | list
+	* create
+	* modify
 * environment
-** ls | list
-** create
-** modify
-** delete
-* data
+	* ls | list
+	* create
+	* modify
+	* delete
+* [data](EnvironmentData.md)
+	* ls | list
+	* create
+	* modify
+	* delete
 
 
 

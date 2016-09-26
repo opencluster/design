@@ -85,4 +85,16 @@ Not authorised to deploy.  Pull request sent.  Change is pending deployment to "
 
 ```
 
+# Excluded from Change-Sets.
+
+There are some operations within OpenCluster Trellis that does not need to be in a change-set.  
+These include:
+
+1. Operations regarding Environments themselves.
+2. Operations regarding Change-sets.
+3. Operations on Environment specific data.
+
+
+
+
 

@@ -36,7 +36,8 @@ Services can come with a hints file which indicates key parts of the service (ie
 ## Low Level Details
 * [Configuration](Configuration.md)
 * [Applying Changes](ApplyingChanges.md)
-
+* [Change Sets](ChangeSet.md)
+* [Command Protocol](CommandProtocol.md)
 
 
 

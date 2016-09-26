@@ -7,3 +7,6 @@ Therefore, we need to be able to report the status and health of the various com
 Some of the Trellis functionality would be accomplished by adding trellis services to your environment.  
 Each service added to the system should have additional config that describes how to monitor the services.  Some default options can be added.
 
+The Monitoring system can also enable triggers that change certain parameters.  When these parameters are changed, it can cause the environment to change.
+
+

@@ -51,4 +51,56 @@ WRAPPED_ENCRYPTED_COMMAND
   ENCRYPTED_STRING
 ```
 
+Note that in the wrapped command, it only includes the encrypted string, and the length of the original.  All the settings around encryption must already have been established.
+
+The encryption method is used for both sending and receiving.  All data received from the server will be encrypted in the same way.
+
+### Validating Encrypted String.
+
+When an encrypted string is received, we need to know if the unencryption was successful.  The session parameters will indicate what is expected.  Typically though, a random integer is provided in the session params, and that must be added to the start of the unencrypted string, or alternatively a seperate command must be provided that encrypts a number, or even a number sequence, and includes that as a seperate RISP command.
+
+This should be flexible, because we dont know what encryption protocols will be recommended in the future.
+
+### Re-key
+
+When establishing an encrypted session, the server will include some session parameters.  One of those parameters will be an expiry time.  Before the session expires, the client must re-establish the session encryption.  
+
+It is up to the client to do this.  If it does not, its session will expire, and the server will no longer accept commands. 
+
+### Disconnection
+
+If the server receives more than a certain number of commands that do not fit the current session, then it will disconnect the socket.  The system can be setup to handle and block certain connections if they cross a threshold on invalid connections and block that IP for a time.
+
+
+### Operations
+
+The operations themselves dont have corresponding RISP commands.  Instead there is a command structure that can send any command to the server.  This means that the protocol should not change when new operations are added to clients and servers.  
+
+```
+OPERATION
+  ID <id number>
+  GROUP "op group"
+  COMMAND "op command"
+  PARAMS
+    PARAM 
+      NAME "param name"
+      VALUE "param value"
+    PARAM
+      NAME "param name"
+      VALUE "param value"
+    PARAM
+      ...
+```
+
+The ID is a client specific ID that is not mandatory, but useful to match up responses.  The response will include the ID whatever it was, or not include it if it wasn't given.
+
+The result returned will normally only require a request code, a certain structure of information (maybe we will use JSON for that?), and maybe some textual output.
+
+```
+RESULT
+  ID <id number>
+  RESULT <result code, 0 normally means success>
+  DATA <JSON formatted result data>
+  OUTPUT <textual output normally for display>
+```
 

@@ -72,27 +72,28 @@ It is up to the client to do this.  If it does not, its session will expire, and
 If the server receives more than a certain number of commands that do not fit the current session, then it will disconnect the socket.  The system can be setup to handle and block certain connections if they cross a threshold on invalid connections and block that IP for a time.
 
 
-### Operations
+## Operations
 
-The operations themselves dont have corresponding RISP commands.  Instead there is a command structure that can send any command to the server.  This means that the protocol should not change when new operations are added to clients and servers.  
+### Sending Commands
+
+The operations themselves dont have corresponding RISP commands.  Instead there is a command structure that can send any command to the server.  This means that the protocol should not change when new operations are added to clients and servers.
+
+The parameters supplied to a command are a simple array of params, and can be whatever structure is needed for the command.  This allows for a very flexible command structure, that is easily loggable and re-runnable. 
+
+> DESIGN DECISION:
+> A purist would likely suggest that the command structure should be pure RISP rather than mixing RISP which can be a fairly decent binary expression of what JSON can do.  However, the main reasons NOT to use JSON for the entire protocol, is that it is difficult to stream.  Until you have processed an entire structure, you have no idea how much data you need to receive.  With RISP we can wrap a flexible JSON structure in a binary protocol that is easier to stream.  This makes the protocol far less complicated to implement and for other to re-implement.
 
 ```
 OPERATION
   ID <id number>
   GROUP "op group"
   COMMAND "op command"
-  PARAMS
-    PARAM 
-      NAME "param name"
-      VALUE "param value"
-    PARAM
-      NAME "param name"
-      VALUE "param value"
-    PARAM
-      ...
+  PARAMS <JSON Params Structure>
 ```
 
 The ID is a client specific ID that is not mandatory, but useful to match up responses.  The response will include the ID whatever it was, or not include it if it wasn't given.
+
+### Receiving Results.
 
 The result returned will normally only require a request code, a certain structure of information (maybe we will use JSON for that?), and maybe some textual output.
 

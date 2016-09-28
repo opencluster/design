@@ -15,6 +15,7 @@ There will be two kinds of accounts... well actually, two options.
 2. Certificate for an account does not have a passphrase, but also are never delivered to the client.  Client must already have the certificate.  Typically used for non-human interfaces.  The certificate on the system must be secured.
 
 The general flow for a user authenticating.
+
 1. Client sends the username to the server.
 2. Server responds with a protected certificate along with some session credentials.
 3. Client unpacks the certificate with a passphrase.

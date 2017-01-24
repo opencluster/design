@@ -10,6 +10,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 ## Running OpenCluster
 * [Getting Started](GettingStarted.md)
 * [Configuring](Configuring.md)
+* [Security Scanning](SecurityScanning.md)
 
 ## Design Goals
 * [Security](Security.md)
@@ -31,7 +32,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Secure files](SecureFiles.md)
 * [Non-Secure files](Files.md)
 * [Load Balancing](LoadBalancing.md)
-* [Environment Specifif Data](EnvironmentData.md)
+* [Environment Specific Data](EnvironmentData.md)
 
 ## Low Level Details
 * [Configuration](Configuration.md)
@@ -40,7 +41,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Command Protocol](CommandProtocol.md)
 
 
-
+----
 
 
 All the services that have dependencies of other services (even in other roles) can receive the information about that service (as it existed at the time that the system was last balanced).

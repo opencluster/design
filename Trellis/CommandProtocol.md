@@ -3,6 +3,11 @@
 All operations performed on the OpenCluster system will be initiated through a specific Command protocol.
 There will also be an HTTP REST API as well, but that will still use the underlying protocol to actually inject the operations.
 
+> DESIGN DECISION:
+> Should the client and server(s) communicate using a Message Queue protocol?
+> First, a simple RISP protocol is available to be used now.  The Message Queue protocol is not.  Granted, the RQ code is mostly complete, but again, not really.  There is nothing stopping us from adding a message queue protocol interface later on if it makes more sense.   Later on we will certainly be using RQ to allow the controllers to communicate with each other.
+
+
 ## Authentication.
 
 The security system for OpenCluster needs to be very robust and advanced.  It will be entirely possible that the Interface will be exposed to the general internet in many organisations, traversing through many uncontrolled networks, therefore the security needs to be as unbreakable as possible.
@@ -12,20 +17,26 @@ Authentication is done in a way where password credentials never have to be stor
 There will be two kinds of accounts... well actually, two options.
 
 1. Passphrase protected certificate can be sent to the client requesting login.  Client must then have the passphrase to unlock the certificate.  Typically used for accounts for people.
-2. Certificate for an account does not have a passphrase, but also are never delivered to the client.  Client must already have the certificate.  Typically used for non-human interfaces.  The certificate on the system must be secured.
+2. Certificate for an account does not have a passphrase, but also are never delivered to the client.  Client must already have the certificate.  Typically used for non-human interfaces.  The certificate on the system must be secured.   Security controls could lock a specific certificate to a particular set of white-listed IP addresses.
 
 The general flow for a user authenticating.
 
 1. Client sends the username to the server.
-2. Server responds with a protected certificate along with some session credentials.
+2. Server creates a session with a random symetric key.
+2. Server responds with a protected certificate along with some session credentials which includes server public key, and the session symetric key encrypted with the clients public key.
 3. Client unpacks the certificate with a passphrase.
-4. Client decrypts a special code within the session to prove they control the cert.
-5. Client sends the session packet back to the server.
+4. Client decrypts the session symetric key using their cert.
+5. Client sends the session packet back to the server (encrypted using the session symetric key).
 6. Server verifies the session packet was decrypted correctly, proving the user had the correct passphrase.
+
+This means that every session will have a different session key.  The session key can only be obtained if the user has the correct passphrase to unpack the certificate.
+
+
 
 ## Encryption.
 
 Once authentication is complete, all further communications need to be encrypted.
+All outgoing data is encrypted using the server public key, and all data
 
 ### Encryption Negotiation.
 
@@ -49,7 +60,7 @@ psuedo-risp:
 ```
 WRAPPED_ENCRYPTED_COMMAND
   LENGTH_OF_UNCRYPTED STRING
-  ENCRYPTED_STRING
+  ENCRYPTED_STRING (which may be longer than the original string)
 ```
 
 Note that in the wrapped command, it only includes the encrypted string, and the length of the original.  All the settings around encryption must already have been established.

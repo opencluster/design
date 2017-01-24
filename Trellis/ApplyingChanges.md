@@ -49,9 +49,19 @@ opencluster environment add-network --env="Testing" --network="Test Network"
 
 ```
 
+# Interactive Command-line
+
+The 'targetcli' tool for managing iSCSI targets has a faily similar interface to what I was intending for OpenCluster, and it seems to work quite well for that.
+
+
 
 ## Command Groups
 
+* environment
+	* ls | list
+	* create
+	* modify
+	* delete
 * change-set
 	* ls | list
 	* create
@@ -92,11 +102,6 @@ opencluster environment add-network --env="Testing" --network="Test Network"
 	* ls | list
 	* create
 	* modify
-* environment
-	* ls | list
-	* create
-	* modify
-	* delete
 * [data](EnvironmentData.md)
 	* ls | list
 	* create

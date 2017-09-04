@@ -1,11 +1,11 @@
 # Hosts
 
-Hosts can be added to Roles.  The actual host themselves do not have to be exclusive or dedicated to Trellis, but obviously anything on there should not conflict with it.  In other words, it is perfectly acceptable to have trellis hosts that have additional things installed on them.  Quite possibly monitoring services, or management and maintenance tools, logging services, etc.
+Hosts can be added to Roles.  The actual host itself does not have to be exclusive or dedicated to Trellis, but obviously anything on there should not conflict with it.  In other words, it is perfectly acceptable to have trellis hosts that have additional things installed on them.  Quite possibly monitoring services, or management and maintenance tools, logging services, etc.   Ideally, OpenCluster should be used to manage everything on a host for full ability to rebuilt and rescale, but if that is not a goal, then are not forced into having a fully opencluster managed host.
 
 Hosts can be added to the system either manually, or automatic.  
 
 ## Automatic Host Provisioning
-[Providers](Providers.md) can be utilized, and linked to metrics and other triggers to automically add capacity to an environment.
+[Providers](Providers.md) can be utilized, and linked to metrics and other [triggers](Triggers.md) to automically add capacity to an environment.
 
 
 ## Manual Host Provisioning

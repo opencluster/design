@@ -40,6 +40,9 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Change Sets](ChangeSet.md)
 * [Command Protocol](CommandProtocol.md)
 
+## Secure Mode OpenCluster
+* [Overview](SecureModeOverview.md)
+
 
 ----
 

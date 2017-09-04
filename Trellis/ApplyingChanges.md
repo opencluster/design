@@ -1,6 +1,6 @@
 # Applying Changes
 
-When changes are applied to an environment they are done through an API.
+When changes are applied to an environment they can be done through an API.
 The API will apply the change.  If there is multiple environments (ie, Development, Testing, Staging, Production), then it will ensure that changes are applied to only the Development environment.
 When each environment is setup, it is set to allow changes to be applied or merged.
 
@@ -30,7 +30,7 @@ opencluster role set-host-param --param="StartServicesOnBoot" --value="no"
 opencluster host add-role --host="ny546" --role="Web Server"
 
 # create a new environment
-opencluster environment create --name="Development"  --short-name="dev"
+opencluster environment create --name="Development" --short-name="dev"
 
 opencluster environment create --name="Testing" --short-name="test" --restrict-change="yes" --merge-from="dev"
 
@@ -68,6 +68,7 @@ The 'targetcli' tool for managing iSCSI targets has a faily similar interface to
 	* discard
 	* commit
 	* promote
+	* export
 * role
 	* ls | list
 	* create

@@ -126,13 +126,13 @@ If you want to have distinct difference between locations, then you would implem
 1. Each locks server maintains a complete picture of what locks have been presented.
 1. When the locks server receives connections from clients and have received invalid commands, it can be configured to block connections from that IP for a certain length of time.
 1. Administrators can:
-  * list all the nodes in the cluster.
-  * remove nodes from the cluster.
-  * list all the new server requests.
-  * list all the locks in the cluster.
-  * list all the locks in the cluster, where the client is not connected.
-  * list all the clients connected to the cluster.
-  * over-ride locks and remove them.
+  1. list all the nodes in the cluster.
+  1. remove nodes from the cluster.
+  1. list all the new server requests.
+  1. list all the locks in the cluster.
+  1. list all the locks in the cluster, where the client is not connected.
+  1. list all the clients connected to the cluster.
+  1. over-ride locks and remove them.
 
 
 ##### Low-Level

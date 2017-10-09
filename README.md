@@ -17,6 +17,7 @@ NOTE: Some of the documentation being presented was created when 'OpenCluster' w
 
 * [Base](Base/Base.md)
 * [Common](Common/Common.md)
+* [LUA](LUA.md)
 
 ## Misc
 

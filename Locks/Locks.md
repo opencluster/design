@@ -78,26 +78,105 @@ The service can also be configured to not provide any information about the serv
 
 ## Location Domains
 
+NOTE: Due to the complexity of Location Domains, and the limited use-cases for it, currently Location Domains will have limited supported in the Locks system.  All nodes in the cluster will need to be active, and free to communicate with each other.   Location Domains will purely be used to assist the clients in connecting to servers that are most local to them.  There will be no effort to isolate or co-ordinate communications between nodes in different location domains.
+
 Most OpenCluster products support [Location Domains](../LocationDomains.md), and the Locks product does as well.   
 
 All the Locks servers in all locations are part of the same over-all cluster. And locks are kept in sync over the entire organisation, but efforts are in place to try and reduce the amount of traffic that occurs between those locations.
 
 Depending on how you configure the services, you might restrict clients to only connect and use Locks services that exist in the same location domain.  For example, the clients in perth might be configured to use locks servers that exist in "au.perth".  This means they can connect to any of the locks servers in both 'au.perth.dh1' and 'au.perth.dh4'.  Those same clients wont try to connect to Locks servers in 'au.sydney'.
 
-This also means that the Locks Servers themselves which need to talk to other members of the Cluster can designate one primary node in each domain to pass communications back and forth between locations.  An example, you might have 4 locks servers in au.perth.  Only one of them will be designated to represent all 4 to the other location domains.
+However, it should be noted that the default configuration will still allow for clients to connect to other locations if none exist in theirs.   It will bubble up.
+
+If the client has a location domain for "au.perth.dh4.rack3.srv5", it will try to connect to clients in the following order.
+* "au.perth.dh4.rack3.srv5"
+* "au.perth.dh4.rack3.srv5.*"
+* "au.perth.dh4.rack3"
+* "au.perth.dh4.rack3.*"
+* "au.perth.dh4"
+* "au.perth.dh4.*"
+* "au.perth"
+* "au.perth.*"
+* "au"
+* "au.*"
+* "*"
 
 
-## Questions 
+## Locks Performance Design.
 
-* Should the server-server connectivity be on a seperate socket than the client connectivity?    
-  * Multiple ports mean more firewall rules needed.
-  * Multiple ports mean that server to server communication can be locked down to only locks servers.
-  * Server to Server communication can be setup to accept different client certificates.
-  * Advantage of a single port is that there is only one protocol.
-  * Disadvantage of a single port is that the protocol is more complicated and you need extra code to ensure that clients dont use commands that should be restricted to servers.
-  * _Yes._
+If we have a situation where there are a large number of locks servers needed, then ensuring that all servers are in sync could mean locks take a while to set, plus every time a lock is set, a flurry of network activity would occur between all the nodes.   To ensure it is done as fast as possible, then you would typically use only a small number of locks servers.  I cant really think of a reason where you would have more than a few servers, but depending on your design, it may be more convenient to have a large number of servers (eg, you may prefer to have a locks node on each compute server, and direct requests to that node).  
+
+If you have geo-located systems, then you would typically have one or more locks servers at each location.    You would certainly not need a pool of hundreds of locks servers.  Most organisations would only likely have 2 or 3.
+
+If, however, the time it takes for locks to sync is a problem, an alternative design is to use a hash similar to the OpenCluster-Data service.  Data uses a hash of the key to determine which server is responsible for that hash (and its backups), and directs requests and changes there.  In that case, there is a specific master for an operation and therefore requests do not have be sync'd amongst the entire cluster. That master node (for that particular operation) is responsible. 
+
+
+## OpenCluster Arbiter.
+
+For free (or a small yearly fee), OpenCluster services could provide an arbiter node.  This node contains no data, but instead is used to verify connectivity between nodes.  It is used as a 'third-site' for quorum purposes.   Since it will live on the internet as an external resource, it does not need to be on-premise.   Some people may want to run their own arbiter node in the cloud somewhere.   We might therefore have a number of arbiter nodes in various locations.  
+
+The arbiter nodes themselves will not contain data, and clients will not connect to them (clients wont even know they exist).
+
+The requirement for the arbiter nodes, is that they can receive connections from all members of the cluster, although it should be noted that the arbiter nodes will not attempt to establish connections.   A single arbiter node could service many many different clusters.  
+
+
+## Quorum
+
+In any clustered solution, a big concern is a 'split-brain' scenario.  Essentially this occurs if you have a situation where the clients can talk to the nodes, but something has happened that is stopping the nodes from talking to each other.  In this case, the nodes assume that the other nodes have simply stopped working.  You then end up with two independantly working clusters.   When the problem is resolved, and those nodes are able to talk to each other again, it will be difficult to work out which state is correct, because both have been servicing clients.   
+
+This is especially a problem in a locking service.  As the point of the locking service is to ensure that certain things do not happen by multiple clients at the same time.  But in this 'split-brain' scenario, that is exactly what is happening.
+
+To stop this from happening, you want to ensure that if either site goes offline, you are able to determine which is the appropriate one that keeps running.   To do this, you should have an odd number of sites (but this doesn't help if most of the sites go offline at the same time).
+
+Another method is to have (one or more) arbiter nodes in other sites.  Especially sites that you are not using yourself.  Eg, if you have two physical data-center locations, you might have the arbiter nodes in one or more Amazon zones, and maybe other 'cloud' environments as well.
+
+*****
+
+When a lock is requested by a client, the server receiving the request will check the lock locally.  If the lock is currently unset locally, then it will assume (for efficiency) that the rest of the cluster also does not have the lock set.  It will send a message to all other servers adding the lock to the queues of each server.  Since it is the first one in the queue, the other nodes will indicate that they have accepted the lock, and are provissionally ready to activate it.
+
+When a lock is requested, the server will send the lock request to all other nodes.  
+
+If the same lock is being requested by more than one server, then it becomes a race to the one which has the majority.
+
+Question:
+	What happens if the lock requests are being driven by more than TWO servers, and none of the requests are able to reach a majority?   
+Answer:
+	Once all the servers have responded, if the majority is not met, then the originating servers will compare their 64-bit server ID against the serverID of the other node that is in contention.   To do this comparison, the server whose number is less than the other will be declared the winner.   The other node will revert their request, and therefore a winner will result.  Even if this happens out of order (ie, server A and B compare, and server C and B compare), once one starts reverting their locks, the deadlock will clear.
+	
+	NOTE, the servers know they are in a deadlock, because they have received all the responces from the other servers. 
+
+Question:
+	Is there an advantage in not making the lock active on the servers after the majority have accepted?
+Answer:
+	The majority is really only needed before returning the positive result to the client.   It doesn't really matter if the server has activated a lock pre-maturely.  Actually, it would be more work to re-concile an accepted but inactive lock.
+
+Question:
+	What happens if an originating node that is co-ordinating the set of a Lock goes offline in the middle of it?   The other nodes will need to cancel the request, or continue on with it if the client is also connected to other nodes.
+Answer:
+	There is no magic answer here that I have found so far.   It could be that during the lock process, since that node was the one making the Lock, if it fails, the other nodes may be able to tell that it has failed.  The same will happen when unlocking a lock.   Can we do it in a way that one server is not the one co-ordinating the lock?  
+
+Question:
+	When a node has accepted a lock, it should send a message to all other nodes indicating that it has accepted the lock?  That way ALL the nodes are aware of the quorum being met.  When setting a lock, maybe there needs to be a timeout?  When the originating node has sent a message back to the client that it has completed the lock, maybe it should send another message back to the cluster to indicate such.   That way, when a server fails mid-lock, and the client is not informed, but the client is also connected to another locks server, the other locks server can take it upon itself to continue the locking process, and inform the client.   Alternatively we can leave it to the client to follow-up if it doesn't get a responce, or if it loses heartbeat with a node.   What if a client is only connected to one server?  What then?   If it loses connetivity with the node mid-lock, and the server cannot return a valid response?   Then the lock needs to be removed.  Which server initiates the removal?  What would be the ramifications if multiple servers initiate the removal.
+  
+Question:
+	What happens if a lock is set, unlocked quickly, and another node sets teh same lock right after.  This means that the sync process will need to be able to catch up.  System should be able to handle very rapid locking and unlocking.
+  
+Question:
+	When a lock is set, and other clients are waiting for the lock, then they essentially queue up.  Should we sync the queue amongst all the nodes? or essentially the server that initially received the request waits for the lock to be unset, and then a free-for-all happens to be the next in the queue?   It should be predictable which clients receive the lock.  The only way to do that, is to sync the request queue.  Maybe the locking process, and the queuing can be in the same operation.   The various syncing modes will play a part in how effective either method is.  If you have a system where you have a large number of nodes, as well as a rapid lock/unlock process, then you want the sync and the queue to be quick.  The quorum method will also be better in situations where some nodes are fast, but others are either slower or have significantly higher latency and take time to catch up.  Ensuring that all nodes are in sync before granting the lock means that the slowest node to respond is the best you will get.
+
+	
+## Handling non-quorum clusters.
+
+Since a quorum typically requires the ability to obtain a majority, it is difficult to do when there are less than 3 server nodes.   So in clusters that have less than 3 nodes, it will behave slightly different.   It will essentially go into active/passive mode.     Clients will be informed that the cluster is in active/passive mode, and that they should connect to both nodes, but send all requests to one (although they dont have to).  if the 2 nodes are able to talk to each other, then they will remain in the same state.  Clients taht are able to talk to the passive, but not to the active one, will be able to send requests to the passive.  Clients will also inform the server that it is unable to communicate with the active.  If the passive is unable to talk to the active, and the clients are saying they cannot talk to the active, then the passive will become the active node.   The clients will be informed that the passive node has now become active.   And if any clients (who are connected to both), are still able to talk to the active, they will be told that the other server is now active, and they will inform the previously-active server that the now-active server has taken over the role.  The now-passive server will be in a 'fault' status, and when it manages to connect to the other node, it will have to go in catch-up mode.  When everything is in sync, the preferred active (that is currently passive, and faulted) will try and promote itself back to normal running state.
 
   
+  
+## Integrity Checks.
+
+Each lock will keep track of their age, and certain other settings.   Each locks server that has locks, will need to validate against the other servers that they all have the same details.
+
+In addition, it should keep track of the number of locks each server has, and during a moment of stability, should provide stats to the other servers to indicate how many locks they each have.  If the servers have different lock counts, then something is wrong.  The hard part here, is doing that while the service is heavily in use, as many servers might be legitimately out of sync as new locks are propogating.
+
 ## Starting a New Locks Cluster.
 
 When the services start, and there is some config that is stored on disk, then it should know how to connect to the cluster, or start a new one.  This config may have a DNS entry, and the locks server can try all the IP's that are returned for that DNS entry, and if it cant connect to any of them (and it's IP appears to be one of them in the list), then it can assume that it is the first member of the cluster.
@@ -105,8 +184,10 @@ When the services start, and there is some config that is stored on disk, then i
 The config should also indicate the minimum quorum (not just a percentage).  This means that if the config indicates that there should be a minimum of 3 locks servers running, then it will not open up client connectivity until that many servers are talking with each other.
 
 If there is no config however.  The server is being started for the first time.  Then it will need to be specifically indicated that it is the first node being created in the cluster.
-  
-  
+
+A command-line tool will be provided that establishes everything needed for a cluster to start.   All the parameters could be supplied on the command-line.  Anything needed that is not supplied, will be asked.
+
+
 ## Tools and Binaries
 
 OpenCluster Locks will include some command-line tools to set local config, and to interact with the locks themselves.  The configuration tools will be installed with the daemon, but the tools to interact with locks themselves will likely be in a different package that can be installed anywhere.
@@ -149,7 +230,6 @@ oclocks-config set auth keyfile /opt/opencluster/locks/config/certs/certfile
 oclocks-config verify
 ```
 
-
 ## Requirements
 
 1. When the service starts, it loads the config that tells it what other locks servers to connect to (this can be either a list of IP's of actual locks servers, or it can be the address of a load-balancer).
@@ -160,7 +240,7 @@ oclocks-config verify
 1. If the client connects without a client certificate, only a subset of operations are available until the client authenticates.  They can authenticate with a username and password.  The client can also generate a CSR and get a certificate signed, which it can then use to connect in the future.
 
 
-## Config File requirements
+## Config File (for Server) requirements
 
 The config file should contain information that can be identical on all locks servers (which means that it should be possible to deploy the exact same config file to all locks servers).   The locks service does need to store data that is unique to it, so the config file should point to other files that contain this data.
 
@@ -172,7 +252,7 @@ When a locks service first starts up, if the file that 'identifier' is referring
 Config inside the Locks system can add friendly names to those identifiers.
 Location domains are applied to the identified systems, but again, those details are stored in the cluster itself, not in local config on the box.
 
-No two servers should exist in the cluster with the same identifier.
+No two servers should exist in the cluster with the same identifier.  The identifier file should NOT be deployed to systems unless it can be guaranteed to be unique.
 
 ### Authentication
 
@@ -193,84 +273,7 @@ If the main config does not specify an auth file, the tool will use the default 
 
 ## Protocol
 
-### Requirements
 
-
-
-#### Server to Server
-
-1. When the service starts it listens on a particular socket (accepting TLS1.3 connections)
-1. Once the configuration has loaded, and it has a quoram, it will accept client connections.
-1. Server attempts to connect to other Locks services (stored locally or in config).
-1. If config dictates, server connects to Load-Balancer to inform them it is ready to receive traffic, and the zone it is in.
-1. Server expects client connections to use a client certificate for authentication.
-1. Server can be told what location domain it is.  The location domain is very typically used within all of OpenCluster services.
-1. Each locks server should be connected to every other locks server within the location domain.  
-1. Each locks server keeps track of how many other locks servers are in the cluster.
-1. Each locks server maintains a complete picture of what locks have been presented.
-1. When the locks server receives connections from clients and have received invalid commands, it can be configured to block connections from that IP for a certain length of time.
-1. Administrators can list all the nodes in the cluster.
-1. Administrators can remove nodes from the cluster.
-1. Administrators can list all the new server requests (Each new server must be approved either explicitly or implicity).
-1. Administrators can list all the locks in the cluster.
-1. Administrators can list all the locks in the cluster, where the client is not connected.
-1. Administrators can list all the clients connected to the cluster.
-1. Administrators can over-ride locks and remove them.
-
-
-#### Low-Level
-
-1. When the client requests a lock, it sends the name of the lock it wants to set, its expiry time (in seconds).
-1. When releasing a lock, the client signs a peice of standard text with the private key, therefore proving that they have the private key, and therefore own the lock, and can release it.
-1. When a server receives a request from a client to set a lock, it will pass that request on to all the other nodes in the cluster.   When it gets confirmation from more than half of the servers, it will know that the lock is successful, and will inform the client.
-
-### Protocol 
-
-
-
-### Server to Server Commands
-
-RISP-based Protocols can be either flat, or structured.  For this use-case, a flat protocol is probably more efficient.   This is typically the case for protocols that are fairly static in their implementation and operation.  Since these operations are very much 1 to 1, and mostly simple, then 
-
-
-```
-// 1 byte integer - 0x0000 to 0x0fff         0 000 xxxx xxxx (8-bit)
-// 2 byte integer - 0x1000 to 0x1fff         0 001 xxxx xxxx (16-bit)
-
-0x1000	CAPABILITY <command-id>
-		This command asks the service if it supports a specific command.  It's parameter is a 16-bit command.   Can be used by both server and client.
-		Responds with:
-			OK_COMMAND <command-id>
-			INVALID_COMMAND <command-id>
-			
-0x1001	OK_COMMAND <command-id>
-		When a client or server wants to know if particular commands are supported, it will ask 'CAPABILITY <command-id>'.  If the command is supported by the server, it will respond with this OK_COMMAND.   
-		
-0x1002	INVALID_COMMAND <command-id>
-		If an invalid command is received by the client or server, it will respond with this command.  Both client and server need to ensure that services are handled correctly if this result is received.  It typically means that either protocol is out-of-date.   To verify the capability of the opposite connection to be able to handle the commands expected prior to actually using them, see the CAPABILITY command.
-
-// 4 byte integer - 0x2000 to 0x2fff         0 010 xxxx xxxx (32-bit)
-// 8 byte integer - 0x3000 to 0x3fff         0 011 xxxx xxxx (64-bit)
-// 16 byte integer - 0x4000 to 0x4fff        0 100 xxxx xxxx (128-bit)
-
-
-// 32 byte integer - 0x5000 to 0x5fff        0 101 xxxx xxxx
-// 64 byte integer - 0x6000 to 0x6fff        0 110 xxxx xxxx
-// No Parameters - 0x7000 to 0x7fff          0 111 xxxx xxxx
-// 1 byte-length string - 0x8000 to 0x8fff   1 000 xxxx xxxx (255 byte string)
-// 2 byte-length string - 0x9000 to 0x9fff   1 001 xxxx xxxx (64k byte string)
-
-0x9003	ZONE <zone>
-		The zone name is a specific isolated tenented zone.  The user must be authenticated for the zone to allow access to anything.
-		
-0x9004	LOCATION_DOMAIN <>
-		The location domain indicates physical or logical properties that can allow grouping of services.  For example, the client can indicate what country and city it is in, and the Locks service can provide appropriate connection details to a service that is more appropriate for that location.
-
-// 4 byte-length string - 0xa000 to 0xafff   1 010 xxxx xxxx ()
-// 8 byte-length string - 0xb000 to 0xbfff   1 011 xxxx xxxx
-// No Parameters - 0xc000 to 0xffff          1 1xx xxxx xxxx
-
-```
 
 ### Client to Server Commands
 ```
@@ -330,7 +333,7 @@ RISP-based Protocols can be either flat, or structured.  For this use-case, a fl
 		Used for authentication componenets.
 		
 0x9002	CSR <csr>
-		Client can generate a CSR and ask it to be signed by the CA for the Locks service.
+		Client can generate a CSR and ask it to be signed by the CA for the Locks service (zone specific).
 		
 0x9003	ZONE <zone>
 		The zone name is a specific isolated tenented zone.  The user must be authenticated for the zone to allow access to anything.

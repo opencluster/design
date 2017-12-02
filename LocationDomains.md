@@ -35,3 +35,23 @@ Or alternatively, you may actually want the location to be of higher importance.
 The Location Domain distinction is completely up to you.  The Locks services will try and use this information to improve responsiveness, and reduce bandwidth.   It is important to remember that the Cluster will be treated as a single entity, even if it is spread all over the globe.   
 
 If you want to have distinct difference between locations, then you would implement multiple clusters (and probably co-ordinate those clusters with another cluster that co-ordinates changes between locations).
+
+# Client co-ordination
+
+Most of the OpenCluster products are built to be provide a clustered service.   To assist clients in connecting to appropriate nodes, location-domains are used.   This means that if a client knows where it is, it can connect to the cluster, and then re-connect to the most appropriate server.
+
+If the client has a location domain for "au.perth.dh4.rack3.srv5", it will try to connect to nodes in the following order.
+* "au.perth.dh4.rack3.srv5"
+* "au.perth.dh4.rack3.srv5.*"
+* "au.perth.dh4.rack3"
+* "au.perth.dh4.rack3.*"
+* "au.perth.dh4"
+* "au.perth.dh4.*"
+* "au.perth"
+* "au.perth.*"
+* "au"
+* "au.*"
+* "*"
+
+Essentially this means that it has the opportunity to connect to a local service, but if there are none local, it will attempt to connect to others anyway.  The location domain config also has the option to specify a weighting.   This means that if you have "au.perth.dh1" and "au.perth.dh4", but you give dh4 a higher weighting, any client that is outside of those domains, but is trying to connect to anything in "au.perth", since dh4 has a higher weighting, servers in that domain will be at the top of the list, and clients will connect to them.  Note that each node can have a configuration that specifies how much load it can have (and this can be dynamic too), so being at the top of the list, doesn't necessarily mean that all traffic will go to it.   Servers that have the same weighting, might be configured to spread the load evenly.
+

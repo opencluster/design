@@ -25,7 +25,7 @@ If a client connects to the locks server, but does not include a client certific
 
 #### Ethereal Authentication.
 
-In some environments where full systems are disposable, scaled and built on demand, you want your locks authentication to be ethereal also.  The locks service can handle that by establishing temporary certificates that have a very finite lifetime.  In these cases, when the service is built, it is given a lifetime, and temporary accounts and certificates are built, and provided to the Locks clients before they attempt to connect.  This means that EVERYTHING on the built service has a finite lifetime (which may be only 24 hours).  If the machine is snapshotted, it will have no data or accounts on it that can be used to connect to important services.
+In some environments where full systems are disposable, scaled and built on demand, you want your locks authentication to be ethereal also.  The locks service can handle that by establishing temporary certificates that have a very finite lifetime.  In these cases, when the service is built, it is given a lifetime, and temporary accounts and certificates are built, and provided to the Locks clients before they attempt to connect.  This means that EVERYTHING on the built service has a finite lifetime (which may be only 24 hours as an example).  If the machine is snapshotted, it will have no data or accounts on it that can be used to connect to important services.
 
 This kind of system involves a complete deplyment pipeline.
 
@@ -39,7 +39,20 @@ Multiple zones might use the same certificate and authentication systems.
 
 ### How it clusters.
 
-It is very similar to the OpenCluster-Data service, but only records the state of a lock.   Also, each server needs to be kept in sync with the Cluster.  Each server should have exactly the same dataset.
+It is very similar to the OpenCluster-Data service, but only records the state of a lock.   Also, each server needs to be kept in sync with the Cluster.  Each server should have exactly the same dataset.   
+
+When a lock is set, it is based on a name.   The name can be quite large, should be considered a string of characters, and should be human readable, however, it doesn't have to be.   The actual name is a binary string.    The 'name' is hashed to return a 64-bit integer.  The integer should have a low possibility of clashing (multiple names resulting in the same integer), however, it is possible, therefore the integer is used to provide a fast index, but is not required to be unique (although it is expected that it will still be mostly-unique).
+
+The 64-bit hash (referred to as IDX), will be used to determine which server will be primarily responsible for it.   Depending on the number of servers in the cluster, a number of buckets will be allocated.  Each server in the cluster will take ownership of particular buckets.  It will continuously attempt to keep the bucket responsibilities  shared evenly amongst the cluster members.
+
+Unlike the Opencluster-Data product, the locks service will ensure that each cluster member maintains a copy of the buckets that it is not responsible for.   However, each bucket will have a primary, and a secondary allocated.  This means that if a server stops responding, the entire cluster is aware of the node that is expected to take over.   
+
+If mutliple nodes go down at the same time, then the cluster will go into recovery mode and responsibilities will be transferred.
+
+Every time a lock is set, the request is directed to the cluster node that is responsible for that lock (based on the IDX hash).   When the lock is accepted, the primary node sends a message to all other nodes to tell them about the lock (so that they can keep their records up-to-date).
+
+NOTE: When using LocationDomains, it can be configured that a copy of the lock data is kept within each LocationDomain, but the number of copies within each LocationDomain can be limited (to a specific number of copies).   This can help reduce the amount of network traffic, and resources required to maintain the multiple copies of the Lock data.
+
 
 ### How locks are set, released (and how does it prevent unauthorised release)
 
@@ -51,11 +64,9 @@ Locks can also have a time-limit.  This means that if the lock is not released a
 
 Locks must continue to work even if significant changes in the cluster occur (ie, a site goes offline).
 
-If Configured so, Locks servers must maintain a Quorum.  This requires that an odd number of Locks servers exist (some servers can be setup to only be a quorum member and not actually handle client connections).
-
 The Locks servers will maintain a copy of shared config.  If the config is changed on any of the Locks servers, the change is replicated to all the others.   Each config change is tracked with a change ID, and as part of the heartbeat, each server indicates what config version they are using.   This will be used to ensure that split-brain situations are detected and handled.   This will also assist with synchronisation when a server goes offline, and when it comes back online, has invalid configuration.
 
-Locks servers should also be able to be geographically isolated.  When a client connects to a Locks server, it is given a list of all the other Locks servers, and can choose the one that gives the quickest response.   This will become its primary Locks server.
+Locks servers should also be able to be geographically isolated (through LocationDomains).  When a client connects to a Locks server, it is given a list of all the other Locks servers, and can choose the one that gives the quickest response.   This will become its primary Locks server.
 
 When a client connects to the server, it establishes an identifier, and it will use that same identifier on the other Locks servers.  This allows them to move around to the fastest repsonding Locks server.
 
@@ -70,15 +81,19 @@ There are multiple kinds of Locks.
 
 There are multiple ways that clients can find and continue connected to the Locks services.   A round-robin DNS entry could point to mulitple servers.  When the client gets connected to one server, it can request and receive connectivity details for other locks servers in the network.  The service can be configured to only provide this information if the client has connected with a valid client certificate, or it could be left open where any connected client can request the information.
 
-This means that the client connects to one of the servers, and then can use the connection information returned for all the other servers to determine which one is the most appropriate one.  The client can send a request and determine the response time, for each of the servers, to determine which one gives the quickest response.   It is therefore up the client to determine which locks server is the correct one to connect to.  
+This means that the client connects to one of the servers, and then can use the connection information returned for all the other servers to determine which one is the most appropriate one.  
+
+To determine the appropriate server to connect to, the client can specify its LocationDomain and the server it connected to, will return a number of servers to connect to.
+
+The client can also send a request and determine the response time, for each of the servers, to determine which one gives the quickest response.   It is therefore up the client to determine which locks server is the correct one to connect to.  
 
 The clients can also request to receive notifications when other locks servers move around (become available, or are removed).
 
-The service can also be configured to not provide any information about the servers to the clients.   In this case, the service might sit behind a load-balancer (or multiple load-balancers), and the client will always connect to a specific connection.
+The service can also be configured to not provide any information about the servers to the clients.   In this case, the service might sit behind a load-balancer (or multiple load-balancers), or a Locks-Proxy, and the client will always connect to a specific connection.
 
 ## Location Domains
 
-NOTE: Due to the complexity of Location Domains, and the limited use-cases for it, currently Location Domains will have limited supported in the Locks system.  All nodes in the cluster will need to be active, and free to communicate with each other.   Location Domains will purely be used to assist the clients in connecting to servers that are most local to them.  There will be no effort to isolate or co-ordinate communications between nodes in different location domains.
+NOTE: Due to the complexity of Location Domains, and the limited use-cases for it, currently Location Domains will have limited support in the Locks system.  All nodes in the cluster will need to be active, and free to communicate with each other.   Location Domains will purely be used to assist the clients in connecting to servers that are most local to them, and to co-ordinate the number of copies of the LockData are kept within each LocationDomain.  There will be no effort to isolate or co-ordinate communications between nodes in different location domains.
 
 Most OpenCluster products support [Location Domains](../LocationDomains.md), and the Locks product does as well.   
 
@@ -104,11 +119,61 @@ If the client has a location domain for "au.perth.dh4.rack3.srv5", it will try t
 
 ## Locks Performance Design.
 
-If we have a situation where there are a large number of locks servers needed, then ensuring that all servers are in sync could mean locks take a while to set, plus every time a lock is set, a flurry of network activity would occur between all the nodes.   To ensure it is done as fast as possible, then you would typically use only a small number of locks servers.  I cant really think of a reason where you would have more than a few servers, but depending on your design, it may be more convenient to have a large number of servers (eg, you may prefer to have a locks node on each compute server, and direct requests to that node).  
+If we have a situation where there are a large number of locks servers needed, then ensuring that all servers are in sync could mean locks take a while to set, plus every time a lock is set, a flurry of network activity would occur between all the nodes.   To ensure it is done as fast as possible, then you would typically use only a small number of locks servers.  I cant really think of a reason where you would need more than a few servers, but depending on your design, it may be more convenient to have a large number of servers (eg, you may prefer to have a locks node on each compute server, and direct requests to that node).  
 
 If you have geo-located systems, then you would typically have one or more locks servers at each location.    You would certainly not need a pool of hundreds of locks servers.  Most organisations would only likely have 2 or 3.
 
 If, however, the time it takes for locks to sync is a problem, an alternative design is to use a hash similar to the OpenCluster-Data service.  Data uses a hash of the key to determine which server is responsible for that hash (and its backups), and directs requests and changes there.  In that case, there is a specific master for an operation and therefore requests do not have be sync'd amongst the entire cluster. That master node (for that particular operation) is responsible. 
+
+
+## Cascading secondaries.
+
+For every Bucket, there is a master node, and a cascading set of secondaries (depending on the config).
+
+When a new node comes online, or the cluster-config changes regarding the number and method of secondaries, the nodes that are deficient will contact the master, and ask if they can be a standby for the bucket.  The master will respond with details of the node that it should cascade from, this will be the node at the end of the list.   The requesting node will then ask the node that the master indicated, if it can be a standby.  If that node does not already have a tail node, then it will accept.  If another node has snuck in, it will tell the standby to check that node... and so on, until it eventually finds one that isn't already linked.
+
+When a node has accepted a secondary, it will begin pushing all its current data to the secondary.  It will keep sending data to its secondary until all the data is complete.  So that a node does not need to keep track of every change since the beginning of time, it will do some shortcuts when soing the initial sync.  Once a node is sync'd, it needs to confirm that each operation is being performed correctly.
+
+While it is syncing its secondary, the node will keep track of new changes to the bucket that occur since, and it will queue those changes until the starting-sync has completed.  Once it is completed, it will tell the node what the current hash is.   The secondary will then compare the next change against that hash, which will allow it to know that it is in sync.
+
+When something changes in a master bucket, it sends a message of the change to the designated secondary.  The change includes a chained hash, which allows the secondary to verify that the information it has is the same as the master has at the end of the transaction.  It is up to the secondary to ensure that it has a valid copy, so any discrepancies will result in a recovery situation.   This cascades through the secondaries.
+
+When a change is received by a secondary, it marks that notation in its memory structures, and when it gets confirmation that its secondary has processed it, it will cascade up.  This also means that while a new node is syncing a bucket, and new changes to that bucket will not be confirmed until that sync is complete.
+
+Since updates to the locks are cascaded, it means it is slow to send the info to the entire cluster.  This is not a problem because the master node is the most important, and it will always be updated first.  It is the one that sets and checks locks.  The cascading sync is only for redundancy, and the further down the tree, the less important it is.   It should also be noted that when setting a lock, you dont need the lock to be cascaded to all nodes for them to take effect.   It should wait until the first secondary has responded that it has received the lock data, and then tell the client that it can proceed.
+
+If a node detects a discrepancy in its hash of the latest change, it will report the problem, then recover.  To recover, they essentially dump their copy, ask to be dropped as a secondary.   Node then begins the process of asking to be a standby for the bucket, which will be directed to the last node in the list.  It will then do the normal process as if it was a new node.   When nodes go out of sync, it should be investigated.  It could be from a myriad of unusual problems.  Including memory corruption, lost packets, bugs, etc.  It is a serious situation.
+
+If a master node that is co-ordinating the set of a Lock goes offline, then a number of things for that lock need to be checked by the secondary when it becomes the master.  Since there is a master node for each lock bucket, if that node goes offline, the secondary server will need to take over.  Depending on what it knows about the lock, is how it would respond.  Basically the master server will have handled the lock/unlock operation.  The rest of the cluster would return information about the status of that operation.   The master server will then redirect taht information to the secondaries, etc.   This means that the secondary should know what state the lock sync was in, and can re-send any lock details to the other servers, that it hasn't recieved full confirmation on.    Every bucket has a cascading list of secondaries... so the updates should flow from one to the other.   A secondary should have no problem whatsoever if it has to take over for a missing primary.
+
+When anything happens on any node that is a concern, then that alert should be sent to all nodes.    The nodes themselves might not do anything about it, but can report it to monitoring solutions.
+
+
+## Metrics
+
+As each cascading node pushes the change to its standby, it will wait until it gets a sync responce back, before sending a responce itself.  This means that when the master sends an update to its secondary, it wont get a completion result until all the cascading nodes have received the sync.  It can store that metric and report it, so that the governing system have some metrics on how quickly changes get synced down the entire chain.
+
+It can get metrics on:
+* time to sync an update
+* number of updates performed per second
+* time it takes for master to process an update.
+* number of locks (per bucket, and total) that are active per second.
+* average time of locks lifetime before it is unlocked.
+* average ping time between nodes, from each node.
+* number of bytes received, number of bytes sent
+* number of clients connected to a node.
+
+
+## Quorum
+
+In any clustered solution, a big concern is a 'split-brain' scenario.  Essentially this occurs if you have a situation where the clients can talk to the nodes, but something has happened that is stopping the nodes from talking to each other.  In this case, the nodes assume that the other nodes have simply stopped working.  You then end up with two independantly working clusters.   When the problem is resolved, and those nodes are able to talk to each other again, it will be difficult to work out which state is correct, because both have been servicing clients.
+
+This is especially a problem in a locking service.  As the point of the locking service is to ensure that certain things do not happen by multiple clients at the same time.  But in this 'split-brain' scenario, that is exactly what is happening.
+
+To stop this from happening, you want to ensure that if either site goes offline, you are able to determine which is the appropriate one that keeps running.   To do this, you should have an odd number of sites (but this doesn't help if most of the sites go offline at the same time).
+
+Another method is to have (one or more) arbiter nodes in other sites.  Especially sites that you are not using yourself.  Eg, if you have two physical data-center locations, you might have the arbiter nodes in one or more Amazon zones, and maybe other 'cloud' environments as well.
+
 
 
 ## OpenCluster Arbiter.
@@ -120,54 +185,10 @@ The arbiter nodes themselves will not contain data, and clients will not connect
 The requirement for the arbiter nodes, is that they can receive connections from all members of the cluster, although it should be noted that the arbiter nodes will not attempt to establish connections.   A single arbiter node could service many many different clusters.  
 
 
-## Quorum
-
-In any clustered solution, a big concern is a 'split-brain' scenario.  Essentially this occurs if you have a situation where the clients can talk to the nodes, but something has happened that is stopping the nodes from talking to each other.  In this case, the nodes assume that the other nodes have simply stopped working.  You then end up with two independantly working clusters.   When the problem is resolved, and those nodes are able to talk to each other again, it will be difficult to work out which state is correct, because both have been servicing clients.   
-
-This is especially a problem in a locking service.  As the point of the locking service is to ensure that certain things do not happen by multiple clients at the same time.  But in this 'split-brain' scenario, that is exactly what is happening.
-
-To stop this from happening, you want to ensure that if either site goes offline, you are able to determine which is the appropriate one that keeps running.   To do this, you should have an odd number of sites (but this doesn't help if most of the sites go offline at the same time).
-
-Another method is to have (one or more) arbiter nodes in other sites.  Especially sites that you are not using yourself.  Eg, if you have two physical data-center locations, you might have the arbiter nodes in one or more Amazon zones, and maybe other 'cloud' environments as well.
-
-*****
-
-When a lock is requested by a client, the server receiving the request will check the lock locally.  If the lock is currently unset locally, then it will assume (for efficiency) that the rest of the cluster also does not have the lock set.  It will send a message to all other servers adding the lock to the queues of each server.  Since it is the first one in the queue, the other nodes will indicate that they have accepted the lock, and are provissionally ready to activate it.
-
-When a lock is requested, the server will send the lock request to all other nodes.  
-
-If the same lock is being requested by more than one server, then it becomes a race to the one which has the majority.
-
-Question:
-	What happens if the lock requests are being driven by more than TWO servers, and none of the requests are able to reach a majority?   
-Answer:
-	Once all the servers have responded, if the majority is not met, then the originating servers will compare their 64-bit server ID against the serverID of the other node that is in contention.   To do this comparison, the server whose number is less than the other will be declared the winner.   The other node will revert their request, and therefore a winner will result.  Even if this happens out of order (ie, server A and B compare, and server C and B compare), once one starts reverting their locks, the deadlock will clear.
-	
-	NOTE, the servers know they are in a deadlock, because they have received all the responces from the other servers. 
-
-Question:
-	Is there an advantage in not making the lock active on the servers after the majority have accepted?
-Answer:
-	The majority is really only needed before returning the positive result to the client.   It doesn't really matter if the server has activated a lock pre-maturely.  Actually, it would be more work to re-concile an accepted but inactive lock.
-
-Question:
-	What happens if an originating node that is co-ordinating the set of a Lock goes offline in the middle of it?   The other nodes will need to cancel the request, or continue on with it if the client is also connected to other nodes.
-Answer:
-	There is no magic answer here that I have found so far.   It could be that during the lock process, since that node was the one making the Lock, if it fails, the other nodes may be able to tell that it has failed.  The same will happen when unlocking a lock.   Can we do it in a way that one server is not the one co-ordinating the lock?  
-
-Question:
-	When a node has accepted a lock, it should send a message to all other nodes indicating that it has accepted the lock?  That way ALL the nodes are aware of the quorum being met.  When setting a lock, maybe there needs to be a timeout?  When the originating node has sent a message back to the client that it has completed the lock, maybe it should send another message back to the cluster to indicate such.   That way, when a server fails mid-lock, and the client is not informed, but the client is also connected to another locks server, the other locks server can take it upon itself to continue the locking process, and inform the client.   Alternatively we can leave it to the client to follow-up if it doesn't get a responce, or if it loses heartbeat with a node.   What if a client is only connected to one server?  What then?   If it loses connetivity with the node mid-lock, and the server cannot return a valid response?   Then the lock needs to be removed.  Which server initiates the removal?  What would be the ramifications if multiple servers initiate the removal.
-  
-Question:
-	What happens if a lock is set, unlocked quickly, and another node sets teh same lock right after.  This means that the sync process will need to be able to catch up.  System should be able to handle very rapid locking and unlocking.
-  
-Question:
-	When a lock is set, and other clients are waiting for the lock, then they essentially queue up.  Should we sync the queue amongst all the nodes? or essentially the server that initially received the request waits for the lock to be unset, and then a free-for-all happens to be the next in the queue?   It should be predictable which clients receive the lock.  The only way to do that, is to sync the request queue.  Maybe the locking process, and the queuing can be in the same operation.   The various syncing modes will play a part in how effective either method is.  If you have a system where you have a large number of nodes, as well as a rapid lock/unlock process, then you want the sync and the queue to be quick.  The quorum method will also be better in situations where some nodes are fast, but others are either slower or have significantly higher latency and take time to catch up.  Ensuring that all nodes are in sync before granting the lock means that the slowest node to respond is the best you will get.
-
 	
 ## Handling non-quorum clusters.
 
-Since a quorum typically requires the ability to obtain a majority, it is difficult to do when there are less than 3 server nodes.   So in clusters that have less than 3 nodes, it will behave slightly different.   It will essentially go into active/passive mode.     Clients will be informed that the cluster is in active/passive mode, and that they should connect to both nodes, but send all requests to one (although they dont have to).  if the 2 nodes are able to talk to each other, then they will remain in the same state.  Clients taht are able to talk to the passive, but not to the active one, will be able to send requests to the passive.  Clients will also inform the server that it is unable to communicate with the active.  If the passive is unable to talk to the active, and the clients are saying they cannot talk to the active, then the passive will become the active node.   The clients will be informed that the passive node has now become active.   And if any clients (who are connected to both), are still able to talk to the active, they will be told that the other server is now active, and they will inform the previously-active server that the now-active server has taken over the role.  The now-passive server will be in a 'fault' status, and when it manages to connect to the other node, it will have to go in catch-up mode.  When everything is in sync, the preferred active (that is currently passive, and faulted) will try and promote itself back to normal running state.
+Since a quorum typically requires the ability to obtain a majority, it is difficult to do when there are less than 3 server nodes.   So in clusters that have less than 3 nodes, it will behave slightly different.   It will essentially go into active/passive mode.     Clients will be informed that the cluster is in active/passive mode, and that they should connect to both nodes, but send all requests to one (although they dont have to).  if the 2 nodes are able to talk to each other, then they will remain in the same state.  Clients that are able to talk to the passive, but not to the active one, will be able to send requests to the passive.  Clients will also inform the server that it is unable to communicate with the active.  If the passive is unable to talk to the active, and the clients are saying they cannot talk to the active, then the passive will become the active node.   The clients will be informed that the passive node has now become active.   And if any clients (who are connected to both), are still able to talk to the active, they will be told that the other server is now active, and they will inform the previously-active server that the now-active server has taken over the role.  The now-passive server will be in a 'fault' status, and when it manages to connect to the other node, it will have to go in catch-up mode.  When everything is in sync, the preferred active (that is currently passive, and faulted) will try and promote itself back to normal running state.
 
   
   
@@ -176,6 +197,9 @@ Since a quorum typically requires the ability to obtain a majority, it is diffic
 Each lock will keep track of their age, and certain other settings.   Each locks server that has locks, will need to validate against the other servers that they all have the same details.
 
 In addition, it should keep track of the number of locks each server has, and during a moment of stability, should provide stats to the other servers to indicate how many locks they each have.  If the servers have different lock counts, then something is wrong.  The hard part here, is doing that while the service is heavily in use, as many servers might be legitimately out of sync as new locks are propogating.
+
+The Buckets themselves need to verified amongst all the secondaries.   As each lock is updated, it will update a rolling hash.  The master node will periodically sort all its keys for that bucket in binary order, and generate a quick hash on that data.  It will then send that check to all the secondaries.  If the secondaries do not match, then they will need to do a more deep verification.
+
 
 ## Starting a New Locks Cluster.
 

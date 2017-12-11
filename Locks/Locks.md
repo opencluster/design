@@ -123,7 +123,9 @@ If we have a situation where there are a large number of locks servers needed, t
 
 If you have geo-located systems, then you would typically have one or more locks servers at each location.    You would certainly not need a pool of hundreds of locks servers.  Most organisations would only likely have 2 or 3.
 
-If, however, the time it takes for locks to sync is a problem, an alternative design is to use a hash similar to the OpenCluster-Data service.  Data uses a hash of the key to determine which server is responsible for that hash (and its backups), and directs requests and changes there.  In that case, there is a specific master for an operation and therefore requests do not have be sync'd amongst the entire cluster. That master node (for that particular operation) is responsible. 
+OpenCluster Locks use a hash similar to the OpenCluster-Data service.  Data uses a hash of the key to determine which server is responsible for that hash (and its backups), and directs requests and changes there.  In that case, there is a specific master for an operation and therefore requests do not have be sync'd amongst the entire cluster. That master node (for that particular operation) is responsible. 
+
+To ensure that the time it takes to set a lock is as predictable as possible, the actual requirement to set a lock is the time it takes for the master to process the request, to send the details to the secondary, and get confirmation from the secondary that it has received and accepted the request. 
 
 
 ## Cascading secondaries.
@@ -147,6 +149,19 @@ If a node detects a discrepancy in its hash of the latest change, it will report
 If a master node that is co-ordinating the set of a Lock goes offline, then a number of things for that lock need to be checked by the secondary when it becomes the master.  Since there is a master node for each lock bucket, if that node goes offline, the secondary server will need to take over.  Depending on what it knows about the lock, is how it would respond.  Basically the master server will have handled the lock/unlock operation.  The rest of the cluster would return information about the status of that operation.   The master server will then redirect taht information to the secondaries, etc.   This means that the secondary should know what state the lock sync was in, and can re-send any lock details to the other servers, that it hasn't recieved full confirmation on.    Every bucket has a cascading list of secondaries... so the updates should flow from one to the other.   A secondary should have no problem whatsoever if it has to take over for a missing primary.
 
 When anything happens on any node that is a concern, then that alert should be sent to all nodes.    The nodes themselves might not do anything about it, but can report it to monitoring solutions.
+
+## Preferred Secondary.
+
+LocationDomains are used to logically determine where the server nodes are.  It does not have to be geographically based, but that generally makes the most sense.  When the nodes are determining which should be the secondary of the master, there is logic that needs to be determined.  This depends on your actual use case.  This can be done using a mask, or specific LUA code that makes the determination.
+
+If a mask is used (Note, LUA code is used to process the mask).   It gives preference to a node that fits within the mask, but does not much the locationDomain of the master node.
+
+If the master node has a location domain of 'au.perth.dc4.rack3.srv25', and a secondary already exists that has 'au.perth.dc4.rack2.srv08', and another node comes online with a location domain of 'au.sydney.dc1.rack2.srv85'.   The new one will do the normal process of becoming a backup bucket node.  Once the sync is complete, it will have a complete picture of the master and secondaries for each bucket.   At the send of the sync, the master will be told by the new node, and the node it is cascaded from, this it is a new backup bucket.   The master will then determine if the new node is better than the current secondary.  If the master thinks it is a better match, it will promote the new node to be the first secondary.
+
+By default the logic will return a number that is the number of location domains that are different.  The higher the level that is different, the higher the number.  In this case, the existing secondary will return 2.  The new secondary will return 4, which is higher.     
+
+NOTE that the master will always be the one that determines if a secondary should be promoted or not.  It is not up to the secondaries to ask to be promoted, otherwise we will have lots of secondaries constantly asking to be promoted.  The master will only promote a secondary if it has a higher score.  Using the mask method, anything that does
+
 
 
 ## Metrics
@@ -297,87 +312,6 @@ If the main config does not specify an auth file, the tool will use the default 
 
 ## Protocol
 
+* [Locks Server Protocol](LocksServerProtocol.md)
+* [Locks Client Protocol](LocksClientProtocol.md)
 
-
-### Client to Server Commands
-```
-// 1 byte integer - 0x0000 to 0x0fff         0 000 xxxx xxxx
-// 2 byte integer - 0x1000 to 0x1fff         0 001 xxxx xxxx
-
-0x1000	CAPABILITY <command-id>
-		This command asks the service if it supports a specific command.  It's parameter is a 16-bit command.   Can be used by both server and client.
-		Responds with:
-			OK_COMMAND <command-id>
-			INVALID_COMMAND <command-id>
-			
-0x1001	OK_COMMAND <command-id>
-		When a client or server wants to know if particular commands are supported, it will ask 'CAPABILITY <command-id>'.  If the command is supported by the server, it will respond with this OK_COMMAND.   
-		
-0x1002	INVALID_COMMAND <command-id>
-		If an invalid command is received by the client or servver, it will respond with this command.  Both client and server need to ensure that services are handled correctly if this result is received.  It typically means that either protocol is out-of-date.   To verify the capability of the opposite connection to be able to handle the commands expected prior to actually using them, see the CAPABILITY command.
-
-
-// 4 byte integer - 0x2000 to 0x2fff         0 010 xxxx xxxx
-
-0x2000	EXPIRE_SECONDS <seconds>
-		Used when a lock is being set an expiry can be set.  This is a failsafe, and is recommended not to use.
-
-// 8 byte integer - 0x3000 to 0x3fff         0 011 xxxx xxxx
-
-0x3000	UNLOCK_CODE <code>
-		This is a random 64-bit number that is generated by the server and provided to the client when a Lock is set.   In order to unlock the lock, the same Unlock-Code must be supplied.
-		
-0x3000	LOCK_WAIT_TIMEOUT <seconds>
-		When LOCK_WAIT is used, it will wait for 'seconds' before returning a failure.   This feature can be used in situations where a single-threaded client needs to try for the lock, but if it cant get it within a certain time, needs to provide some other functionality before trying again.   This value will remain for the session, not just the single attempt.  Setting 'seconds' to zero means that it will wait forever.
-
-// 16 byte integer - 0x4000 to 0x4fff        0 100 xxxx xxxx
-// 32 byte integer - 0x5000 to 0x5fff        0 101 xxxx xxxx
-// 64 byte integer - 0x6000 to 0x6fff        0 110 xxxx xxxx
-// No Parameters - 0x7000 to 0x7fff          0 111 xxxx xxxx
-
-0x7000	SET_LOCK
-		Will use the NAME and EXPIRE_SECONDS values to determine what to do.
-		
-0x7001	SET_LOCK_WAIT
-		Will attempt to set a Lock, and will wait until LOCK_WAIT_TIMEOUT seconds before exiting.
-		
-0x7002	LOCKED
-		Will provide the LOCK_NAME, EXPIRE_SECONDS, UNLOCK_CODE of a lock that has been set.
-		
-0x7003	LOCK_FAILED
-		Will provide the LOCK_NAME of the failed lock.   Lock can fail immediately if SET_LOCK was used, or after the timeout period if SET_LOCK_WAIT was used.
-
-// 1 byte-length string - 0x8000 to 0x8fff   1 000 xxxx xxxx
-// 2 byte-length string - 0x9000 to 0x9fff   1 001 xxxx xxxx
-
-0x9000	USERNAME <username>
-		Used for authentication components.  Normally is used to establish a client certificate.
-		
-0x9001	PASSWORD <password>
-		Used for authentication componenets.
-		
-0x9002	CSR <csr>
-		Client can generate a CSR and ask it to be signed by the CA for the Locks service (zone specific).
-		
-0x9003	ZONE <zone>
-		The zone name is a specific isolated tenented zone.  The user must be authenticated for the zone to allow access to anything.
-		
-0x9004	LOCATION_DOMAIN <>
-		The location domain indicates physical or logical properties that can allow grouping of services.  For example, the client can indicate what country and city it is in, and the Locks service can provide appropriate connection details to a service that is more appropriate for that location.
-
-0x9005	LOCK_NAME <>
-		The lock name.
-		
-0x9006	SERVER_NAME <>
-		When servers are connecting to each other, they can provide their configured names.  This can make it easier to debug and manage.
-		
-0x9007	CLIENT_NAME <>
-		When a client connects, it can provide a client name.  Server can be configured in multiple ways, to restrict the connections, or allow them.
-
-		
-		
-// 4 byte-length string - 0xa000 to 0xafff   1 010 xxxx xxxx
-// 8 byte-length string - 0xb000 to 0xbfff   1 011 xxxx xxxx
-// No Parameters - 0xc000 to 0xffff          1 1xx xxxx xxxx
-
-```

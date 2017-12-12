@@ -95,7 +95,9 @@ Static Lock | These locks are used for situations where something connects, sets
 
 There are multiple ways that clients can find and continue connected to the Locks services.   A round-robin DNS entry could point to mulitple servers.  When the client gets connected to one server, it can request and receive connectivity details for other locks servers in the network.  The service can be configured to only provide this information if the client has connected with a valid client certificate, or it could be left open where any connected client can request the information.
 
-This means that the client connects to one of the servers, and then can use the connection information returned for all the other servers to determine which one is the most appropriate one.  
+This means that the client connects to one of the servers, and then can use the connection information returned for all the other servers to determine which one is the most appropriate one. 
+
+The connection info returned will be a JSON structure.  The JSON structure should include the list of servers that are preferred to connect to.   If the client is not connected to a preferred server, it will then connect to the preferred, and direct all requests to the preferred server (the client will actually try to be connected to more than one service).
 
 To determine the appropriate server to connect to, the client can specify its LocationDomain and the server it connected to, will return a number of servers to connect to.
 
@@ -104,6 +106,7 @@ The client can also send a request and determine the response time, for each of 
 The clients can also request to receive notifications when other locks servers move around (become available, or are removed).
 
 The service can also be configured to not provide any information about the servers to the clients.   In this case, the service might sit behind a load-balancer (or multiple load-balancers), or a Locks-Proxy, and the client will always connect to a specific connection.
+
 
 ## Location Domains
 
@@ -322,6 +325,9 @@ oclocks-config verify
 
 If the main config does not specify an auth file, the tool will use the default location `/opt/opencluster/locks/config/auth.json`, but will not modify the main config file.
 
+### Connection Config
+
+When a node is added to the cluster, it is given a JSON structure that indicates how the server should discover the other nodes in the cluster (note, that it is possible, that the cluster moves around while the node is offline, and it needs to be able to find it when it comes online)
 
 
 ## Protocol

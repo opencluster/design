@@ -6,15 +6,16 @@ This document describes the protocol and methods used for all Server to Server c
 
 * Should the server-server connectivity be on a seperate socket than the client connectivity?    
   * Multiple ports mean more firewall rules needed.
-  * Multiple ports mean that server to server communication can be locked down to only locks servers.
+  * Multiple ports mean that server to server communication can be locked down to only locks servers (doesn't need to be exposed to consumer clients').
   * Server to Server communication can be setup to accept different client certificates.
   * Advantage of a single port is that there is only one protocol.
   * Disadvantage of a single port is that the protocol is more complicated and you need extra code to ensure that clients dont use commands that should be restricted to servers.
-  * _Yes._
+  * _*Yes.*_
 
 * Should the server-server connectivity be allowed to be configured to use the same socket as client connectivity?
   * _No._
 
+* How is 
   
 ## Requirements
 

@@ -13,7 +13,7 @@ Using Locks should be avoided where possible in the architecture.  Using a lock 
 
 An alternative to using locks is to use a Message Queing system that only delivers requests to an active node.
 
-## Specific Feature.
+## Specific Features.
 
 ### Authentication
 
@@ -27,15 +27,30 @@ If a client connects to the locks server, but does not include a client certific
 
 In some environments where full systems are disposable, scaled and built on demand, you want your locks authentication to be ethereal also.  The locks service can handle that by establishing temporary certificates that have a very finite lifetime.  In these cases, when the service is built, it is given a lifetime, and temporary accounts and certificates are built, and provided to the Locks clients before they attempt to connect.  This means that EVERYTHING on the built service has a finite lifetime (which may be only 24 hours as an example).  If the machine is snapshotted, it will have no data or accounts on it that can be used to connect to important services.
 
-This kind of system involves a complete deplyment pipeline.
+This kind of system involves a complete deployment pipeline.
 
 ### Multi-Tenant Capable
 The Locks system has the concept of walled-off zones.  Therefore multiple unrelated entities can use the Locks service without impacting or even being aware of each other.  This means that the Locks service can be sold as a service to multiple companies, or used by multiple seperate departments in the same company.
 
-Each 'zone' can have its own set of certificates, authentication services, and logging outputs.   The only thing each 'zone' shares is the Locks servers themselves.  And the 'zones' do not have any visibility or management of the servers, other than being told which servers to connect to.
+Each 'zone' can have its own set of certificates, authentication services, and logging outputs.   The only thing each 'zone' shares is the Locks serversP themselves.  And the 'zones' do not have any visibility or management of the servers, other than being told which servers to connect to.
 
 When a client connects, it indicates what zone it is wanting to use.   The certificate that it provided would be validated against that particular zone.  
 Multiple zones might use the same certificate and authentication systems.
+
+### Cluster-wide configuration.
+
+The Locks servers will maintain a copy of shared config.  If the config is changed on any of the Locks servers, the change is replicated to all the others.   Each config change is tracked with a change ID, and as part of the heartbeat, each server indicates what config version they are using.   This will be used to ensure that split-brain situations are detected and handled.   This will also assist with synchronisation when a server goes offline, and when it comes back online, has invalid configuration.
+
+Locks servers should also be able to be geographically isolated (through LocationDomains).  When a client connects to a Locks server, it is given a list of all the other Locks servers, and can choose the one that gives the quickest response.   This will become its primary Locks server.
+
+Config will be stored as lists in a tree-structure.   Some small parts of the structure will be stored on disk (only the necessary info for the node to re-connect to the cluster).  The config will be stored in memory, and will include all the details of the clients and running parameters.
+
+```
+ Parameters
+ Servers
+ Clients
+```
+
 
 ### How it clusters.
 
@@ -54,27 +69,27 @@ Every time a lock is set, the request is directed to the cluster node that is re
 NOTE: When using LocationDomains, it can be configured that a copy of the lock data is kept within each LocationDomain, but the number of copies within each LocationDomain can be limited (to a specific number of copies).   This can help reduce the amount of network traffic, and resources required to maintain the multiple copies of the Lock data.
 
 
+
+
 ### How locks are set, released (and how does it prevent unauthorised release)
 
 To set a lock, the caller simply provide a textual name for the lock, along with some optional parameters such as the expiry time of the lock, and whether the lock should survive a disconnect state (and how long it should allow for timeout).
 
-When a lock is set, the Service responds with an unlock-key.  In order to unlock it, the client must provide this unlock-key.  The unlock key will be a random 64-bit number.
+When a lock is set, the Service responds with an unlock-key.  In order to unlock it, the client must provide this unlock-key.  The unlock key will be a random 64-bit number.  The unlock-key concept is to ensure that the actual node that has asked for the lock, is the only one (or whoever it passes the key to), that can unlock it.  You do not want one process to set a lock, and another process to simply remove the lock unexpectedly.   By providing the key, it means that it can be passed along to other clients that might remove the lock, and it doesn't have to be the same client to unlock it.
 
 Locks can also have a time-limit.  This means that if the lock is not released after that time, then it will be released automatically.  Care should be taken that a released lock from a timeout does not cause problems for your application.
 
-Locks must continue to work even if significant changes in the cluster occur (ie, a site goes offline).
+Locks must continue to work even if significant changes in the cluster occur (ie, a site goes offline, or clients lose connection).
 
-The Locks servers will maintain a copy of shared config.  If the config is changed on any of the Locks servers, the change is replicated to all the others.   Each config change is tracked with a change ID, and as part of the heartbeat, each server indicates what config version they are using.   This will be used to ensure that split-brain situations are detected and handled.   This will also assist with synchronisation when a server goes offline, and when it comes back online, has invalid configuration.
-
-Locks servers should also be able to be geographically isolated (through LocationDomains).  When a client connects to a Locks server, it is given a list of all the other Locks servers, and can choose the one that gives the quickest response.   This will become its primary Locks server.
-
-When a client connects to the server, it establishes an identifier, and it will use that same identifier on the other Locks servers.  This allows them to move around to the fastest repsonding Locks server.
+When a client connects to the server, it establishes an identifier, and it will use that same identifier on the other Locks servers.  This allows them to move around to the fastest responding Locks server.
 
 There are multiple kinds of Locks.
 
-- Connection Lock : These locks are automatically released if the caller loses socket connectivity with the Locks server (although it is possible for the calling application to have connectivity to more than one Locks server, and can maintain a connection with any of the Locks servers to maintain the Lock.)
+Connection Lock: 
+	These locks are automatically released if the caller loses socket connectivity with the Locks server (although it is possible for the calling application to have connectivity to more than one Locks server, and can maintain a connection with any of the Locks servers to maintain the Lock.)
 
-- Static Lock : These locks are used for situations where something connects, sets a lock, disconnects, and later re-connects and removes the lock.
+Static Lock:
+	These locks are used for situations where something connects, sets a lock, disconnects, and later re-connects and removes the lock.
 
 
 ## Discovery.

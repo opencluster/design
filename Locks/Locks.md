@@ -85,11 +85,10 @@ When a client connects to the server, it establishes an identifier, and it will 
 
 There are multiple kinds of Locks.
 
-Connection Lock: 
-	These locks are automatically released if the caller loses socket connectivity with the Locks server (although it is possible for the calling application to have connectivity to more than one Locks server, and can maintain a connection with any of the Locks servers to maintain the Lock.)
-
-Static Lock:
-	These locks are used for situations where something connects, sets a lock, disconnects, and later re-connects and removes the lock.
+Lock Type | Description
+----------|--------------
+Connection Lock | These locks are automatically released if the caller loses socket connectivity with the Locks server (although it is possible for the calling application to have connectivity to more than one Locks server, and can maintain a connection with any of the Locks servers to maintain the Lock.)
+Static Lock | These locks are used for situations where something connects, sets a lock, disconnects, and later re-connects and removes the lock.
 
 
 ## Discovery.

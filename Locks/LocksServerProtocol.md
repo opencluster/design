@@ -10,24 +10,35 @@ This document describes the protocol and methods used for all Server to Server c
   * Server to Server communication can be setup to accept different client certificates.
   * Advantage of a single port is that there is only one protocol.
   * Disadvantage of a single port is that the protocol is more complicated and you need extra code to ensure that clients dont use commands that should be restricted to servers.
-  * _*Yes.*_
+  * _Yes._
 
 * Should the server-server connectivity be allowed to be configured to use the same socket as client connectivity?
   * _No._
 
-* How is 
-  
+* How is cluster administration done. 
+  * An admin client can connect to the server using the client socket.
+  * The admin connection is given rights based on its role when authenticated.  
+  * The client can perform administration function, which might be to view active locks, clear a dead-lock, view error logs, etc.
+  * Almost all the admin commands are essentially LUA operations, that return data in a JSON structure.
+  * A command-line tool will be supplied that provide all the necessary admin functionality.
+  * A Locks GUI (web-based) will also likely be provided as well.  The GUI will simply perform the admin functionality and display it appropriately.
+
+
+
+
 ## Requirements
 
 1. When the service starts it listens on a particular socket (accepting TLS1.3 connections)
-1. Once the configuration has loaded, and it has a quoram, it will accept client connections.
+1. Until the configuration has loaded, and it has a quorum (as configured), it will not accept client connections.
 1. Server attempts to connect to other Locks services (stored locally or in config).
 1. If config dictates, server connects to Load-Balancer to inform them it is ready to receive traffic, and the zone it is in.
 1. Server expects client connections to use a client certificate for authentication.
 1. Server can be told what location domain it is.  The location domain is very typically used within all of OpenCluster services.
-1. Each locks server should be connected to every other locks server within the location domain.  
+1. Each locks server should be connected to every other locks server within the cluster (not just the Local Domain).  
 1. Each locks server keeps track of how many other locks servers are in the cluster.
-1. Each locks server maintains a complete picture of what locks have been presented.
+1. Each locks server keeps track of all the buckets of data, and who the list of nodes responsible for it (master, secondary).
+1. By default, each node will be a member of each bucket, however, for large clusters that is impractical, so it can be configured to only have a certain number of buckets at a LocalDomain level (including global)
+1. Each locks server maintains a complete picture of what locks have been presented (if it has a bucket).
 1. When the locks server receives connections from clients and have received invalid commands, it can be configured to block connections from that IP for a certain length of time.
 1. Administrators can list all the nodes in the cluster.
 1. Administrators can remove nodes from the cluster.
@@ -40,9 +51,12 @@ This document describes the protocol and methods used for all Server to Server c
 
 ## Low-Level
 
-1. When the client requests a lock, it sends the name of the lock it wants to set, its expiry time (in seconds).
-1. When releasing a lock, the client signs a peice of standard text with the private key, therefore proving that they have the private key, and therefore own the lock, and can release it.
-1. When a server receives a request from a client to set a lock, it will pass that request on to all the other nodes in the cluster.   When it gets confirmation from more than half of the servers, it will know that the lock is successful, and will inform the client.
+1. When the client requests a lock, it sends the name of the lock it wants to set, its expiry time (in seconds), it's request timeout, etc.  Client recieves the result of the lock request, and an unlock key if it was accepted.
+1. When releasing a lock, the client must provide the unlock key.  Therefore proving that they are the one that originally requested the lock.
+1. When a server receives a request from a client to set a lock, it will pass that request on to master node for that bucket (unless it is the master node).
+1. The master of a bucket is the source-of-truth for the locks that fall in that bucket.  When it accepts a lock (or queues lock requests), it will inform it's secondary (which will then cascade down the list of secondaries).  When the secondary has ack'd the info, then it will inform the client that it has the lock.
+1. When a client logs into a server, the server will check if that client is also logged into other servers, and will update its lists.  it will also inform all the other nodes, that the client has connected to it.  This allows any node to know how to communicate with the client when a lock is set (but the client is not connected to that master).  
+1. When a lock is requested from another node, the master will keep track of the server that acctually made that request, and will send responces back to that server if it can.
 
 
 ## Protocol 

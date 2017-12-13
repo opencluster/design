@@ -233,6 +233,13 @@ In addition, it should keep track of the number of locks each server has, and du
 The Buckets themselves need to verified amongst all the secondaries.   As each lock is updated, it will update a rolling hash.  The master node will periodically sort all its keys for that bucket in binary order, and generate a quick hash on that data.  It will then send that check to all the secondaries.  If the secondaries do not match, then they will need to do a more deep verification.
 
 
+## Encryption and Zones
+
+With the OpenCluster-Data product, there is encryption between zones that means that unless a client knows the decryption key, it is unable to decrypt the data.  Therefore, the walled zones are actually encrypted using different keys.
+
+The Locks service doesn't really have any data, it just has named locks, therefore, there is no real need for encryption. The zones are kept separate using authentication and access rules.   The Lock names are also not protected by encryption, as there is no real need.  If the locks from other zones are somehow exposed, they are only lock names, and not any actual data.
+
+
 ## Starting a New Locks Cluster.
 
 When the services start, and there is some config that is stored on disk, then it should know how to connect to the cluster, or start a new one.  This config may have a DNS entry, and the locks server can try all the IP's that are returned for that DNS entry, and if it cant connect to any of them (and it's IP appears to be one of them in the list), then it can assume that it is the first member of the cluster.

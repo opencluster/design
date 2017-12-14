@@ -133,6 +133,12 @@ If the client has a location domain for "au.perth.dh4.rack3.srv5", it will try t
 * "au.*"
 * "*"
 
+In summary, LocationDomains are used in several ways within this Locks service.
+
+1. LocationDomains are used to track the number of backup copies of the data are kept within the cluster.   Normally all cluster nodes maintain a copy of the Locks that are currently set, however you can specify that backup copies are not needed for nodes within the same domain.  
+2. LocationDomains are used to determine who is the immediate secondary of a node.  This is used to ensure that the backup nodes that will take over during an incident are not in the same location as the master.
+3. LocationDomains are used by the client connections to determine which node should be the clients primary connection point.
+
 
 ## Locks Performance Design.
 

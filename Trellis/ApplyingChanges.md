@@ -24,7 +24,7 @@ opencluster role create --name="Web Server"
 
 # Set a Host Param in a Role (This means all hosts that this role is applied to, will have this param.)
 # In this case, when a host reboots, we do not want services to start automatically.
-opencluster role set-host-param --param="StartServicesOnBoot" --value="no"
+opencluster role set-host-param --role="Web Server" --param="StartServicesOnBoot" --value="no"
 
 # add a role to a host.
 opencluster host add-role --host="ny546" --role="Web Server"

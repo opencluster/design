@@ -1,0 +1,8 @@
+A useful feature might be to have a web interface that controls the cluster.
+
+It would be a service that sits on the network and connects to the nodes as a client.
+
+It would have its own user authentication method, which might be to a local database, or through some other authentication method.
+
+This web-console would also be able to show the general health of every node in the cluster.  (although the information it gets might be from a container).
+This could indicate which machines are having memory preasure.

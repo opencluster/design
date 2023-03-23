@@ -1,0 +1,31 @@
+Startup Sequence of the server
+
+1.  Parse command line parameters.  There may not be any.  if -h is chosen, then the app closes. if -k is chosen, then it uses the next parameter as the location of the config file.
+
+2.  Load the config file.
+
+3.  Process the info in the config file.  Certain combinations of config will result in some slightly different startup code.
+
+4.  Fork to the new username if in daemon mode.
+
+5.  Setup event system
+
+6.  Create Sync startup event.
+
+7.  Create Query startup event. 
+
+
+
+
+
+
+
+When a new server node is starting up, it first must either create a new cluster (which is complete), or connect to the existing cluster nodes.   Before accepting connections from clients, it probably would be a good idea to ensure that it can actually connect to all the server nodes that it needs to connect to.
+
+This is required because the cluster needs to be balanced, and it can only be balanced if all the nodes can talk to each other.
+
+While it is in this unconnected state, it will not accept loadlevel requests either.
+
+It will keep attempting to connect to all the nodes in the cluster.  When it is able to, it will accept client connections.
+
+

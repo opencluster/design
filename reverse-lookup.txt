@@ -1,0 +1,11 @@
+One of the ideas for opencluster that is perhaps not present elsewhere is the ability to do a reverse lookup.   
+
+For example, if we have a key of Usernames, where the index is the UserID (an integer), and the value is a string representing the username.
+
+If we are given a username and want to lookup the userID, we do a reverse lookup of that key.
+
+As long as the values are unique, it will return the index, which is the userID.
+
+You could do the same with EmailAddress.
+
+

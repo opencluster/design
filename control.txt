@@ -1,0 +1,11 @@
+Command control
+
+The cluster needs some real time control.  It could be that the administrators want to view statistics, or unlock a lock, or set a global expiry on a bunch of keyvalues, etc.
+
+These should be considered administrator operations, rather than general client operations.  
+
+Each query would be in a JSON format, and the result would be a JSON structure.
+
+Authentication:
+The config file will have a command-authfile entry which will point to a file which contains the authentication details... which would likely be a password.   Currently this is implementated as a JSON structure, although it may be better to simply take it as a line of input (ignoring any leading and trailing whitespace).
+

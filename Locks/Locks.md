@@ -150,6 +150,42 @@ OpenCluster Locks use a hash similar to the OpenCluster-Data service.  Data uses
 
 To ensure that the time it takes to set a lock is as predictable as possible, the actual requirement to set a lock is the time it takes for the master to process the request, to send the details to the secondary, and get confirmation from the secondary that it has received and accepted the request. 
 
+## Logical Buckets
+
+To cater for situations ranging from an environment using only a handful of server nodes, all the way to environments that utilise hundreds or thousands of locks servers, maybe even geographically dispersed (up to a point anyway), we utilise a method to split the pool of data into buckets.   The main purpose of this is to spread the load and responsibility (being a master node for a bucket only adds a certain amount of CPU and memory load, but still some)   The number of buckets is determined by the number of nodes within the cluster.   The logic to determine which locks fall into each bucket, is based on a sliding binary mask.   
+
+Note, the maximum and minimum number of buckets can be set in the cluster-config.  However, setting those values would only be needed under certain operating requirements (eg, you dont want your master node to be split over the cluster).
+
+Under default situations, the mask will grow as the number of nodes in the cluster increase.  Note also that there is no mechanism to shrink the mask (reduce and merge the buckets), as there is no real problem with having more buckets.
+
+In the code, the mask is a 64-bit mask.  As each lock is given a 64-bit hash.   In this example, only 8-bit hashes and masks are used, simply to make it easier to read.  The concept is the same, but the numbers are much larger.
+
+### Example of buckets and masks.
+
+When a cluster is started, and you have just a single server node.  Then you have 1 bucket.   The mask is 00000000 (in binary).   There is no point in having multiple buckets, because there is not multiple nodes to put them on.  
+
+When a lock is set, say "Create Account" lock, and it gets a 64-bit hash (although, to make it easier to describe this example, we will use 8-bit hashs and masks).  The 64-bit hash should be fairly randomly distributed.  In this case, lets say that results in a hash of 10110011.     Since AND'ing the hash and the mask, will always result in 0, then that lock will belong in bucket 0.  We only have one bucket, so that makes sence.
+
+So now another server node is added to the cluster.   We now have 2 nodes.   We have more nodes than buckets, so we split it.  The mask is doubled (or in this case, set to 00000001).  The existing bucket is split into 2 buckets, and all the locks in the bucket have their hash compared to the mask, and moved into the appropriate bucket.   You now have two buckets, and the original node is still the master node for each of the buckets.  
+
+The second node notices that there is an inbalanced (it has no buckets, but the other node has 2).  So it asks the master if it can be a secondary for the buckets.  The master accepts, and pushes the lock data to the secondary server.
+
+Once that is complete, and the number of buckets spread over the nodes is now in balance, the second server now notices that there is an inbalance with the master nodes of the buckets.  The secondary asks the master if it will let it be the master for one of the buckets (the secondary will ask about a specific bucket).
+
+The master node will evaluate the request from the secondary.  If it agrees, it will promote the second server to be the master for that particular bucket.  Since both nodes were in sync, this is a quick process.  When changes happen in the bucket ownership, that info is sent to every other server in the cluster (but in this case, there are only two).
+
+This means, that one server is master for half of the locks, and the other is master for the other half.  Each lock's hash fits into one of the buckets.   Why split the buckets over the nodes?  Because in most cases, clients will essentially be able to connect to either one, and there is a 50% chance that the lock it is referring to, will be on the node it is talking to.   
+
+When a request for a lock comes in, say the one we did before, "Create Account", which results in a hash of 10110011, and we now AND it with the mask (which is 00000001), we end up in bucket 1.  It checks the distribution table, and knows which particular node owns (is the master for) that lock, and the request is directed to it.
+
+Now lets add another node.  
+
+The new node joins the cluster.  The master nodes, recognise that there is now more nodes than there is buckets.  So it splits them again.  When one master node splits a bucket, it lets the other nodes know that it has split a bucket, and the other nodes will then split all theirs.  
+
+The bucket splitting is fast, so it is possible, that a master node has split its buckets before the new node has even connected to the other nodes.   So when one master does it, all do it, even if they dont agree on the known number of nodes.
+
+
+
 
 ## Cascading secondaries.
 

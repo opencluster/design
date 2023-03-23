@@ -24,3 +24,25 @@ The droplet behaves just like a server, it is a virtual machine.  Joe and Barry 
 They install the [OpenCluster Controller](../Trellis/Trellis.md) interactively (it asks the initial required questions) and it is installed.
 
 The Controller is now running on `Server1` and is not really doing much though.   It has a Web Interface, as well as a command-line tool.
+
+Even though the controller is running on Server1, it is currently only maintaining the Core cluster (which is the underlying cluster).
+
+Joe creates a Cluster called "Cluster".
+There needs to be at least one zone, so it creates one called 'Default Zone'.
+Joe adds `Server1` to the `Default Zone`.
+
+Joe then sets up a Service (by using built in templates that guide him) which will automatically deploy changes from a Github repository, and even able to setup an Action Trigger so that it deploys automatically when changes are committed to a specific Branch.
+
+Joe has already setup DNS for their domain to hit Server1 but since they periodically think about automating some processes, they add the DigitalOcean module to their cluster, so it is available if they ever do use it.  (but realistically, they dont need to yet)
+
+The DigitalOcean module is a seperate module that integrates into OpenCluster so that you can automatically deploy new resources using the DigitalOcean platform.  For example, if their website would typically not get much activity during the weekend or certain times in the day, they can save money by running the website on a single server, but if the website suddenly gets a lot of activity, they can configure it to automatically spin up a new server and balance the load.   Joe and Barry are not in a position where they really care about this yet, but are looking at how it might work.  They also think of the possibility to also using AWS resources, so they also add the AWS module to their controller.   Just adding the module doesn't really do anything (other than it gives them notifications that in order for it to work, they will have to generate an API token and put it in the system).
+
+## The next step in expanding development
+
+After going live, and seeing people using their website, and a lot of motivation for adding new features, they then start to realise that they really need to setup a Development environment to mimic a real service, but just for testing before they actually put it out where their customers will experience it.    This became important because Joe and Barry had made changes to their website, which actually didn't work as they expected, which actually caused their customers to complain, so they realised that they need to be a bit more careful to avoid customers dumping them.   Its a tricky part of their startup, and reality is kicking in.
+
+Joe logs into the OpenCluster controller and sets up a new zone called `Development`.   He sets up a new cheap small server called `DevServer1` in DigitalOcean and adds it to the `Development` zone. 
+
+The service that he created originally that deploys the code from github (and triggers a script which deploys the code changes) is not tied to a specific zone.  He sets up an action in github that will trigger a deployment of the service to the `DevServer1` server.   He also manually sets up a DNS record pointing to the new dev server (in the future he can set up stuff in OC that can automatically do that for him, but at this scale, not that important)
+
+

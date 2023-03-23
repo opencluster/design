@@ -1,0 +1,18 @@
+Now that we have the concept of different zones, there will be an internal config zone, that will contain cluster information and will 
+be distribued to all the nodes the same way that other clustered data is distributed.
+
+The internal cluster zone, is sync'd just like every other zone, and in order to modify it, you must have the appropriate key.
+
+This internal zone will also have all the information about all the other nodes in the cluster.  The balancing could all be done via 
+that information, rather than being built into the protocol with the periodic LOADLEVEL request.  Might have to think about that in 
+case there are valid reasons not to do it that way.
+
+This also means that future changes with how the balancing is done, can pretty much be done without changing the protocol.  Just change 
+how that internal data is used.  As long as the protocol handles the operations needed to act on that data.
+
+This way, when a new node key is added, the other server nodes get access to it, and can authenticate the other nodes.   
+The same thing with the zones and the clients.
+
+Once a zone is added to the cluster, all the nodes need to get that information and authenticate clients that want to use that zone, 
+and receive data for it.
+

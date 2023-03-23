@@ -1,0 +1,19 @@
+Config file.
+
+Originally I was wanting to use parameters passed to the command-line to start up the server daemon, but now that we are providing a bunch of paths to files, it can be a bit cumbersome.  Also, with the systemd method of starting and stopping components you have a lot more flexibility in starting up daemons, which may be better to have config locked down in config files, rather than as params on the command line.
+
+So most of the command-line params will go, and the rest will be in a config file at the default location.  The default location would be /etc/opencluster/opencluster.conf
+
+The only remaining command-line params will be:
+ - help / usage
+ - path to config file.
+
+Development Notes;
+
+There does not appear to be a standard .ini file parser that is used by default on most linux systems.  Since I want to limit the amount of pre-requisite libraries that need to be installed, I'm thinking about building my own.
+
+I've actually written a couple of ini file parsers in the past.   I'm very tempted to use JSON, but, those files are harder to have inline comments, and may be a barrier to entry as it makes things seemingly a bit more complicated for the end user who needs to config it, even though it would make things a lot easier for me.
+
+
+
+

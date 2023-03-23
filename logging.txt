@@ -1,0 +1,5 @@
+Logging
+
+Instead of using our own logging code, we will use the built in syslog instead.  This is more universal, but not sure what the mechanism would need to change to for a windows build.
+
+When it comes to containers, the convention is to have log output go to standard output and then docker tools are used to extract the logs, and can be monitored through a central logging system.

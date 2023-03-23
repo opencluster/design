@@ -1,0 +1,6 @@
+-----
+Within the OpenCluster operating framework, could have a concept of a floating scheduled task.  This means that you would have some hosts on the system that can perform some actions (ie, they have access to the required resources).  The job will be deployed to those hosts, and it will run when scheduled, and check a central source somewhere to determine if another instance is already running it.   The run process should be atomic and safe so we dont end up with a situation where multiple instances run at the same time.
+This wouldn't be a special system or service, but instead can utilize existing components.  It can use the OC data services to keep track of when and how the job should run.  It could also use a central controller that sends messages to components that are passive.
+There are many different ways to implement this.
+-----
+

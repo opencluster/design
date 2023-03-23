@@ -1,0 +1,9 @@
+Read Only Access
+
+I was going to code into the system a feature where clients can be authorized for each full write access or read-only access.
+
+But it does make things slightly more complicated from a configuration position.  To reduce confusion, we can still provide read-only access to having a seperate read-only proxy service.
+
+This service will connect to the nodes like a normal client, but it will accept client connections and relay them to the real cluster.  The only difference is that it will return error codes if a client tries to make changes to the cluster.
+
+This service could be configured seperately to the regular cluster, with its own set of keys.

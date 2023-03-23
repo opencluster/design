@@ -1,0 +1,4 @@
+It might be useful to have the daemon start a command pipe which would be an interactive method to communicate with the server locally.   
+
+This would bypass any network related security so it would only apply if the server itself can be reasonably secured.
+

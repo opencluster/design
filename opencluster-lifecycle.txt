@@ -1,0 +1,29 @@
+This lifecycle is for the model where the cluster daemon is running natively on the server.  Another lifecycle will be created for 
+scalable docker and container images.
+
+The cluster daemon is installed.
+
+The config /etc/opencluster/opencluster.conf is updated based on your requirements.
+Some config options will be the logging type, etc.
+
+The primary admin key is generated and placed in /etc/opencluster/keys
+
+The cluster is started, with the specific options to create a new cluster, rather than joining a cluster.
+
+A new key is created and added for another node to join the cluster.
+It can be set with the maximum number of nodes that can use this key.  If you want a different key per node, then you would set this to 1.
+
+A new key is generated and added to a new zone.  This will be the admin key for a zone.
+
+The admin key in the zone can be used to create new keys and add them to the zone with specific access rights.
+
+
+
+New node is started up, and given the public key that it uses to connect to the other nodes.   
+
+
+
+
+
+
+

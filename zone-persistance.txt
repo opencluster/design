@@ -1,0 +1,6 @@
+each zone can have a persistance strategy.  For example, you might have one zone that you only want to keep in memory, yet other zones might want to be stored on disk.
+The perisistence is a tricky problem especially when you have many many nodes that might drop in and out of the cluster.
+
+At a cluster level, I think we need to have specific data flows for persistence.   For example, we might have 20 nodes in the cluster, yet we only want persistence to happen on 2 other machines that aren't specifically in the cluster, or handling client connections.
+
+

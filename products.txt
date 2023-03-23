@@ -1,0 +1,29 @@
+The Opencluster suite needs to provide all the services that an application would need to provide clustered services (at an application level).
+
+For this we need:
+ 1. a way for application components to communicate with each other.
+ 2. a resilient and scalable way for data to be stored in a way that application components can access and share if needed.
+ 3. Caches to store re-usable data that is expensive to generate, that multiple components can use.
+
+So we have some products
+
+	OpenCluster Queue
+   
+		Message queue service.  Provide queues and topics.   Designed around Queue controllers that 
+		configure themselves in a cluster.  They are scalable in that they controllers can be added 
+		and removed without losing functionality.
+
+	OpenCluster Cache
+	
+		Simple Caching service, that is distributed amongst many nodes.  Each node is started up 
+		with a certain amount of memory allocated to it.  Similar in scope to memcached but with the 
+		ability to add and drop nodes at will.  And with implied security.
+		
+ 
+Since we have a messaging service, it's possible to tack on the other services on top of it.  However, that may not be appropriate, and a specific network layer for each of these service.   
+For example, the cache, and the storage would be very similar in the backend, but very different use cases.
+
+
+
+
+

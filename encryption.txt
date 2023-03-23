@@ -1,0 +1,36 @@
+OpenCluster - Connectivity and Authentication
+
+I've been thinking recently about what a proffessional cluster solution should provide regarding options for security.
+It is possible that OpenCluster would be used in many different types of environments, and should be equally profficient in each environment type it is likely to be used in.
+This can include the following scenarios:
+ - Single developer machine which runs code for debugging.  This would mean a low impact single node that is easy to configure, start, stop and query.
+ - Single server deployments with the ability to expand if needed.
+ - Dual server deployments for redundancy or capacity.
+ - Many servers in a single datacenter or on-premises.
+ - Datacenters with crosstalk (not recommended, but not unexpected)
+ - Datacenters with isolated clusters.
+ - Multiple datacenters.
+ - Multiple clusters on site (so they must not contaminate each other).
+ - Cloud-based cluster
+ - Hybrid cloud and on-premises systems where cluster itself can be in the cloud, or on-premises or even both.
+
+In many of these instances, it has now become preferable that all communications are encrypted.   It may be beyond some organisations to ensure encrypted traffic at the network level, and would appreciate encryption at the application (cluster) level.  Other organisations may be able to provide encrypted network, and do not want the cluster to also encrypt.  So we need to provide a solution that provides the option of encryption without making it mandatory, but still provide adequate security and controls.
+
+My solution.
+
+1.  Encryption is an all or nothing thing for server-to-server communications.
+1.  Each client and each server will use private/public keys to negotiate a random symetric key for communications in that session only.
+1.  The encryption is a layer on top of the existing protocol.   Essentially when a connection is made, it sends a command to initiate a secure channel. Once that is negotiated, all communications will go over that channel, sent as encrypted packets, which are then decrypted and then parsed the same way it would be received otherwise.
+1.  A new server should be able to be added to the cluster, and all existing and future nodes need the ability to communicate with it.
+1.  Clients or nodes that do not have authentication for at least one existing node, will not be able to connect to anything.
+1.  The server configuration can indicate that a client connection requires encryption or not.  
+1.  If a client can connect to one server in the cluster, it should be able to connect to any other server in the cluster... even if it wasn't originally aware of that server.  This means that the server must provide the public key to clients that are already authenticated.
+1.  If client encryption is not enforced, and a client connects to a node, but a new server is added that does enforce client encryption, then the client can get the public key for that new server, and can use it.  This way, an existing, running cluster can be moved from not enforcing encryption, to enforcing it, and back again, without the need to bring the cluster down.
+1.  If encryption is not enabled for server-to-server comms, but new servers are added that include it, then the existing nodes will have the public key, so that they can 
+
+
+
+
+
+NOTE: to avoid the situation where systems can be brought down because of very large packets of data, some smarts can be built into the parsing so that it stores large packets of data to disk and parse them seperately so that very large chunks of memory are not consumed.  This could be difficult to accomplish, but might be important for the overall health of the cluster.
+ 

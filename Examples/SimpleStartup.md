@@ -41,8 +41,18 @@ The DigitalOcean module is a seperate module that integrates into OpenCluster so
 
 After going live, and seeing people using their website, and a lot of motivation for adding new features, they then start to realise that they really need to setup a Development environment to mimic a real service, but just for testing before they actually put it out where their customers will experience it.    This became important because Joe and Barry had made changes to their website, which actually didn't work as they expected, which actually caused their customers to complain, so they realised that they need to be a bit more careful to avoid customers dumping them.   Its a tricky part of their startup, and reality is kicking in.
 
-Joe logs into the OpenCluster controller and sets up a new zone called `Development`.   He sets up a new cheap small server called `DevServer1` in DigitalOcean and adds it to the `Development` zone. 
+Joe logs into the OpenCluster controller and sets up a new zone called `Development`.   He manually sets up a new cheap small server called `DevServer1` in DigitalOcean and adds it to the `Development` zone. 
 
 The service that he created originally that deploys the code from github (and triggers a script which deploys the code changes) is not tied to a specific zone.  He sets up an action in github that will trigger a deployment of the service to the `DevServer1` server.   He also manually sets up a DNS record pointing to the new dev server (in the future he can set up stuff in OC that can automatically do that for him, but at this scale, not that important)
 
+Now they have it setup so that when they deploy code to a specific branch, it gets deployed automatically to their new Development server.  Quite easy, and doesn't cause too much problems as there is only the 2 of them doing the work.
 
+## Expanding.
+
+Now that Joe and Barry's business is become more and more successful, they are having to start taking things more seriously.  They originally setup a simple database on the webserver they setup, but it needs to be re-structured better.  They are also getting a lot more traffic on their site, which makes them a little worried that it wont be able to handle the load if things kick off higher.  They are taking their new business seriously, and some of their college mates are offering to work there also.  They are nervous about committing their future to this project, and are going to have to make some tough decisions.  They dont want to spend a lot of time worrying about the underlying infrastrucutre, they want to focus on making the bsuiness work, and developing new functionality into their websites.
+
+Barry focuses on the development, but Joe will focus on getting the underlying services lined up.  They discuss how to deal with their data storage.  They decide to setup another server for Database storage.  Although there are many many options out there.. and many they think they would actually end up using the in the future, it is not currently beneficial to use those, as they are more expensive at the current scale.   So they setup a small server which costs them only about $5 a month, but at least it is a seperate instance than their webserver.
+
+Joe changes the current 'Default' role to the 'Webserver' role, and adds the existing Server1 to it.  Everything still remains the same.  Nothing really changed there.
+
+Joe then creates a new role called 'Database' and add the new database server to it.  Although it isn't managing much at this point, he sets it up to monitor the database service on the server, to ensure it is running.  He also sets it up to notify him if services are not running, but should be.

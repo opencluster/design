@@ -31,3 +31,10 @@ The OpenCluster products should all carry some similar design criteria.
 * [Security](Security.md)
 * [Authentication](Authentication.md)
 * [Zones](Zones.md)
+
+## Real-Life Scenarios
+
+These potential examples should represent the capability of the OpenCluster services, as well as the intended goals.
+
+* [Simple Startup](Examples/SimpleStartup.md)
+

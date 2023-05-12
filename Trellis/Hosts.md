@@ -9,7 +9,7 @@ Hosts can be added to the system either manually, or automatic.
 
 
 ## Manual Host Provisioning
-Hosts can come in all sizes and from different sources.  Also, some environments may be large and expensing, or small and inexpensive.  The trellis system shouldn't force people to use a much larger environment than they need, so it needs to be fairly flexible in the hosts that it can use.   Essentially, you can add a host to the system in a couple of convenient ways.
+Hosts can come in all sizes and from different sources.  Also, some environments may be large and expensive, or small and inexpensive.  The trellis system shouldn't force people to use a much larger environment than they need, so it needs to be fairly flexible in the hosts that it can use.   Essentially, you can add a host to the system in a couple of convenient ways.
 
 OpenCluster.org provides a service where config can be uploaded (automatically), and made available to new clients so that they know how to connect to the environment.
 
@@ -43,7 +43,7 @@ A central distributed data service itself can help co-ordinate this, without the
 
 ## Host Configuration
 
-When a Host is first initialised several keys is stored on the server.  However, the [node](../Nodes/Nodes.md) config comes from the controller.   Some config can be marked as secure and volatile, which means that if the server is restarted, it must get the information from the controller.  These nodes cannot reboot and get all the information they need to continue working.  If the Host is compromised, there should not be any files on the system that have security keys.  
+When a Host is first initialised several keys are stored on the server.  However, the [node](../Nodes/Nodes.md) config comes from the controller.   Some config can be marked as secure and volatile, which means that if the server is restarted, it must get the information from the controller.  These nodes cannot reboot and get all the information they need to continue working.  If the Host is compromised, there should not be any files on the system that have security keys.
 
 It may be more convenient to have the passwords on the server, so that when it restarts, it can automatically continue to function, but that reduces it security somewhat.  
 

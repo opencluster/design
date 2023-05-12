@@ -10,7 +10,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 ## Running OpenCluster
 * [Getting Started](GettingStarted.md)
 * [Configuring](Configuring.md)
-* [Security Scanning](SecurityScanning.md)
+    * [Security Scanning](SecurityScanning.md)
 
 ## Design Goals
 * [Security](Security.md)
@@ -33,11 +33,13 @@ Services can come with a hints file which indicates key parts of the service (ie
 * [Non-Secure files](Files.md)
 * [Load Balancing](LoadBalancing.md)
 * [Environment Specific Data](EnvironmentData.md)
+* [Console](Console.md)
 
 ## Low Level Details
 * [Configuration](Configuration.md)
 * [Applying Changes](ApplyingChanges.md)
 * [Change Sets](ChangeSet.md)
+* [Actions](Actions.md)
 * [Command Protocol](CommandProtocol.md)
 
 ## Secure Mode OpenCluster

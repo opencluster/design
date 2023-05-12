@@ -6,7 +6,19 @@ An example: A LoadBalancer (LB) instance is setup on each host to deliver traffi
 
 ----
 
-To ensure that traffic for sites (and paths) are delivered only to compatible services, need a mechanism to verify that.  When a service starts up, and it connects to the LB, it will need to indicate what site (and paths) it will handle.  However, it will also need to either a unique Identifier for its version, or a version number.  It should also be able to indicate what other versions it is compatible with. 
+## Smart Balancing
+
+Smart Balancing is a method where a service communicates with the LoadBalancer and provides information to it, that helps determine the routes to take.
+
+### Smart Routing
+
+When setting up a connection to the Load-Balancer, the service will initially connect to one load-balancer.   It has multiple options.  It can connect to one load-balancer, provide some information, and then the load-balancer then syncs that information across all the load-balancers in that tier.  The service could indicate that it may want to connect to the LB, and the LB just sends traffic through that connection, or it could indicate its connection details and the LB's create new connections each time to that service.  Depending on the preferences, all the LB's will likely 'ping' the service and determine the timings.  It will then be able to know which LB has the fastest route to that service, and therefore traffic will be delivered as much as possible to that service.
+
+For example, if we have a service called `Catalog` and we setup several instances (one in each datacenter).  We also have a LB in each datacenter.  Each service connects to a LB and then gets sync'd up.  Now when  requests come in from various sources, the sources have determined which LB is the most efficient so they send traffic to that LB.  That LB knows about all the Catalog instances, and also knows which one responds the quickest.  Because of this information, when a request comes in, it is delivered to the closest LB to the source.  That LB passes the request on to the node that has the most efficient response (which is likely in the same data-center).
+
+### Smart Versioning
+
+To ensure that traffic for sites (and paths) are delivered only to compatible services, need a mechanism to verify that.  When a service starts up, and it connects to the LB, it will need to indicate what site (and paths) it will handle.  However, it will also need to either a unique Identifier for its version, or a version number.  It should also be able to indicate what other versions it is compatible with.
 
 Lets say we have a service called `catalog`.  Version 1.0.1.  So maybe it will be actually referred to as `catalog-1.0.1`.
 
@@ -29,6 +41,12 @@ So when slight changes occur:
   * The LB will determine that `1.0.1` is compatible with `1.0.2` and will start delivering traffic to it.
   
 Note also, that the Load-Balancers can be configured to give priority to services.  In some cases it may be better to give priority to services with a higher version.. in others it may be better to give priority to services with lower versions.  This is up to the implementer to determine.  Why?  Because it you have 4 nodes and are deploying a new version, eventually all the older versions will need to shutdown, so would be better to start sending new traffic to nodes with the newer versions.   In other instances, when rolling out new versions, you may want only a little traffic going to them, so you can check logs and metrics to ensure it is working as expected.  Then the implementor can change the settings once they are happy and change the delivery mechanism.   This could also be implemented. 
+
+----
+
+## Legacy Balancing
+
+The legacy balancing is for situations where traffic needs to be delivered to a service that cannot provide the additional information that helps determine the best routing.
 
 
 

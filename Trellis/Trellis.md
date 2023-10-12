@@ -10,7 +10,7 @@ Services can come with a hints file which indicates key parts of the service (ie
 ## Running OpenCluster
 * [Getting Started](GettingStarted.md)
 * [Configuring](Configuring.md)
-    * [Security Scanning](SecurityScanning.md)
+* [Security Scanning](SecurityScanning.md)
 
 ## Design Goals
 * [Security](Security.md)

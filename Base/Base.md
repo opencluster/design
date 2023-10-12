@@ -1,11 +1,11 @@
 # OpenCluster-Base
 
-Some of the OpenCluster services use very similar method to ensure communication between nodes within the cluster.
+Some of the OpenCluster services use very similar methods to ensure communication between nodes within the cluster.
 The MessageQueue services are similar but provide different metrics.
 
 The 'Base' is essentially a library and an optional code framework, that is targetted towards the Server components.  The counter-part for clients is [OpenCluster-Common](../Common/Common.md).
 
-The [OpenCluster-Cache](../Cache/Cache.md), [OpenCluster-Data](../Data/Data.md) and [OpenCluster-Locks](../Locks/Locks.md) services will all use very similar methods in communicating.  What they do with the data communicated is all very different, but the communication method is similar.
+The [OpenCluster-Cache](../Cache/Cache.md), [OpenCluster-Data](../Data/Data.md) and [OpenCluster-Locks](../Locks/Locks.md) services will all use very similar methods in communicating.  What they do with the data communicated is all very different, but the communication method itself is similar.
 
 ## Basic Requirements:
 
@@ -13,7 +13,7 @@ The [OpenCluster-Cache](../Cache/Cache.md), [OpenCluster-Data](../Data/Data.md) 
 * Only one node can make changes at a time.
 * Seperation and sync of communications between sites.
 
-The base will handle the authentication part, with hooks that allow the overlying sytem to utlize the authentication and enhance it..
+The base will handle the authentication part, with hooks that allow the overlying sytem to utlize the authentication and enhance it.
 
 ## Datacenter Connector.
 

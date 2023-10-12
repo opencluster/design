@@ -3,4 +3,11 @@ Within the OpenCluster operating framework, could have a concept of a floating s
 This wouldn't be a special system or service, but instead can utilize existing components.  It can use the OC data services to keep track of when and how the job should run.  It could also use a central controller that sends messages to components that are passive.
 There are many different ways to implement this.
 -----
+One idea...
+For opencluster that is managing hosts and resources....
+For cases like puppet where a certificate is generated and needs to be accepted.
+There should be a potential where some key components can be installed and managed before it is even accepted.
+
+Nothing of compromise should be included in this level.   Most likely will be used to gather the right information or to prepare a system for its initial build. Anything managed in the pre-management state needs to be very careful.  Nothing should be included that can compromise the systems.
+-----
 

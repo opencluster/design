@@ -10,6 +10,6 @@ Additionally, at some point, OpenCluster will provide a publically available ser
 
 ## Remote Management
 
-OpenCluster also intends to provide a paid service which provides customers with an OpenCluster Controller instance, and will likely also provide other service as well.
+OpenCluster also intends to provide a paid service which provides customers with an OpenCluster Controller instance, and will likely also provide other service as well.  They could also use this as backup.  For example, they have their own systems on-site... but just in case an issue occurs, they have their cluster sync'd to our services.  They could have it at whatever level they want.
 
 
